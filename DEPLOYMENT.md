@@ -11,9 +11,13 @@
 # 在项目根目录执行
 git add .
 git commit -m "Initial commit - Todo FlowChart App"
-git branch -M main
 git remote add origin https://github.com/你的用户名/dummy_irt.git
+
+# 推送主分支
 git push -u origin main
+
+# 推送部署分支
+git push -u origin gh-pages
 ```
 
 ### 3. 配置 GitHub Pages
@@ -24,15 +28,37 @@ git push -u origin main
 5. 保存设置
 
 ### 4. 自动部署
-- 每次向 main 分支推送代码时，GitHub Actions 会自动构建并部署
+- 每次向 **gh-pages** 分支推送代码时，GitHub Actions 会自动构建并部署
 - 部署完成后，你的应用将在 `https://你的用户名.github.io/dummy_irt/` 可用
 
-## 本地开发和手动部署
+## 分支策略
+- **main 分支**: 主开发分支，用于日常开发
+- **gh-pages 分支**: 专门用于 GitHub Pages 部署的分支
 
-### 本地开发
+## 本地开发和部署流程
+
+### 开发流程
 ```bash
-npm install
+# 切换到主分支进行开发
+git checkout main
+
+# 进行开发工作
 npm run dev
+
+# 提交更改
+git add .
+git commit -m "Add new feature"
+git push origin main
+```
+
+### 部署流程
+```bash
+# 将主分支的更改合并到部署分支
+git checkout gh-pages
+git merge main
+
+# 推送到部署分支触发自动部署
+git push origin gh-pages
 ```
 
 ### 手动部署（可选）
