@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>流程图使用示例</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .example-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .code-block {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .flowchart-container {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DBL Process Flow - 使用示例</h1>
+
+        <div class="example-section">
+            <h2>1. 独立页面嵌入</h2>
+            <p>直接在HTML页面中嵌入流程图：</p>
+            <div class="code-block">
+&lt;!-- 基础嵌入 --&gt;
+&lt;div id="flowchart-app"
+     data-flow-id="your-flow-id"
+     data-title="DBL Process Flow"
+     data-width="100%"
+     data-height="600px"&gt;
+&lt;/div&gt;
+&lt;script src="./flowchart-embed.js"&gt;&lt;/script&gt;
+            </div>
+
+            <div class="flowchart-container">
+                <div id="flowchart-demo-1"
+                     data-title="DBL Process Flow - 示例1"
+                     data-width="100%"
+                     data-height="400px">
+                </div>
+            </div>
+        </div>
+
+        <div class="example-section">
+            <h2>2. 只读模式嵌入</h2>
+            <p>用于展示流程图，不允许编辑：</p>
+            <div class="code-block">
+&lt;div id="flowchart-app"
+     data-flow-id="your-flow-id"
+     data-title="DBL Process Flow"
+     data-readonly="true"
+     data-hide-header="false"
+     data-show-powered-by="false"
+     data-width="100%"
+     data-height="500px"&gt;
+&lt;/div&gt;
+&lt;script src="./flowchart-embed.js"&gt;&lt;/script&gt;
+            </div>
+
+            <div class="flowchart-container">
+                <div id="flowchart-demo-2"
+                     data-title="DBL Process Flow - 只读模式"
+                     data-readonly="true"
+                     data-width="100%"
+                     data-height="400px">
+                </div>
+            </div>
+        </div>
+
+        <div class="example-section">
+            <h2>3. iframe 嵌入</h2>
+            <p>在其他网站中通过iframe嵌入：</p>
+            <div class="code-block">
+&lt;iframe
+    src="https://yoursite.com/flow/your-flow-id?readonly=true"
+    width="100%"
+    height="600"
+    frameborder="0"
+    style="border: 1px solid #ddd; border-radius: 8px;"&gt;
+&lt;/iframe&gt;
+            </div>
+
+            <div class="flowchart-container">
+                <iframe
+                    src="about:blank"
+                    width="100%"
+                    height="400"
+                    frameborder="0"
+                    style="border: 1px solid #ddd; background: #f8f9fa; display: flex; align-items: center; justify-content: center;">
+                    <p>iframe 示例预览</p>
+                </iframe>
+            </div>
+        </div>
+
+        <div class="example-section">
+            <h2>4. 响应式嵌入</h2>
+            <p>自适应不同屏幕尺寸：</p>
+            <div class="code-block">
+&lt;div class="responsive-flowchart"&gt;
+    &lt;div id="flowchart-app"
+         data-flow-id="your-flow-id"
+         data-title="DBL Process Flow"
+         data-width="100%"
+         data-height="400px"&gt;
+    &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;style&gt;
+.responsive-flowchart {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .responsive-flowchart {
+        padding: 10px;
+    }
+}
+&lt;/style&gt;
+            </div>
+        </div>
+
+        <div class="example-section">
+            <h2>5. 功能特性</h2>
+            <ul>
+                <li><strong>交互式步骤</strong>：点击步骤查看详细信息</li>
+                <li><strong>文件附件</strong>：支持添加邮件、Word文档等附件</li>
+                <li><strong>SFTP上传</strong>：一键上传文件到服务器</li>
+                <li><strong>状态管理</strong>：跟踪步骤完成状态</li>
+                <li><strong>分享链接</strong>：生成可分享的链接</li>
+                <li><strong>全屏模式</strong>：支持全屏查看</li>
+                <li><strong>导出功能</strong>：导出为PNG图片</li>
+            </ul>
+        </div>
+
+        <div class="example-section">
+            <h2>6. API参数说明</h2>
+            <table border="1" style="border-collapse: collapse; width: 100%;">
+                <tr>
+                    <th style="padding: 10px; background: #f8f9fa;">参数</th>
+                    <th style="padding: 10px; background: #f8f9fa;">类型</th>
+                    <th style="padding: 10px; background: #f8f9fa;">默认值</th>
+                    <th style="padding: 10px; background: #f8f9fa;">说明</th>
+                </tr>
+                <tr>
+                    <td style="padding: 10px;">data-flow-id</td>
+                    <td style="padding: 10px;">string</td>
+                    <td style="padding: 10px;">-</td>
+                    <td style="padding: 10px;">流程图ID，从后端获取数据</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px;">data-title</td>
+                    <td style="padding: 10px;">string</td>
+                    <td style="padding: 10px;">'Flow Chart'</td>
+                    <td style="padding: 10px;">流程图标题</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px;">data-readonly</td>
+                    <td style="padding: 10px;">boolean</td>
+                    <td style="padding: 10px;">false</td>
+                    <td style="padding: 10px;">是否只读模式</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px;">data-hide-header</td>
+                    <td style="padding: 10px;">boolean</td>
+                    <td style="padding: 10px;">false</td>
+                    <td style="padding: 10px;">是否隐藏头部</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px;">data-show-powered-by</td>
+                    <td style="padding: 10px;">boolean</td>
+                    <td style="padding: 10px;">true</td>
+                    <td style="padding: 10px;">是否显示版权信息</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px;">data-width</td>
+                    <td style="padding: 10px;">string</td>
+                    <td style="padding: 10px;">'100%'</td>
+                    <td style="padding: 10px;">容器宽度</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px;">data-height</td>
+                    <td style="padding: 10px;">string</td>
+                    <td style="padding: 10px;">'600px'</td>
+                    <td style="padding: 10px;">容器高度</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- 模拟嵌入脚本 -->
+    <script>
+        // 模拟流程图嵌入效果
+        document.addEventListener('DOMContentLoaded', function() {
+            const demos = document.querySelectorAll('[id^="flowchart-demo"]');
+            demos.forEach(demo => {
+                demo.innerHTML = `
+                    <div style="display: flex; flex-direction: column; height: 100%; background: #f8fafc;">
+                        <div style="padding: 10px; background: #e5e7eb; border-bottom: 1px solid #d1d5db;">
+                            <strong>${demo.dataset.title}</strong>
+                            <span style="float: right; font-size: 12px; color: #6b7280;">
+                                ${demo.dataset.readonly === 'true' ? '只读模式' : '交互模式'}
+                            </span>
+                        </div>
+                        <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #6b7280;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 10px;">📊</div>
+                                <div>DBL Process Flow</div>
+                                <div style="font-size: 12px; margin-top: 5px;">点击步骤查看详情</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        });
+    </script>
+</body>
+</html>
