@@ -1,0 +1,82 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="1280" height="720" fill="#f8fafc"/>
+
+  <!-- 应用界面模拟 -->
+  <rect x="0" y="0" width="1280" height="80" fill="white" stroke="#e5e7eb" stroke-width="1"/>
+
+  <!-- 标题栏 -->
+  <text x="40" y="35" fill="#374151" font-size="24" font-weight="bold">DBL Process Flow System</text>
+
+  <!-- 标签页 -->
+  <rect x="40" y="50" width="120" height="35" fill="#3b82f6" rx="6"/>
+  <text x="100" y="70" text-anchor="middle" fill="white" font-size="14">交互式流程图</text>
+
+  <rect x="170" y="50" width="100" height="35" fill="#f3f4f6" rx="6"/>
+  <text x="220" y="70" text-anchor="middle" fill="#6b7280" font-size="14">嵌入预览</text>
+
+  <!-- 流程图区域 -->
+  <rect x="40" y="120" width="1200" height="560" fill="white" stroke="#e5e7eb" stroke-width="1" rx="8"/>
+
+  <!-- 模拟流程节点 -->
+  <g transform="translate(200, 200)">
+    <!-- 节点1 - 已完成 -->
+    <rect x="0" y="0" width="180" height="100" fill="#ecfdf5" stroke="#10b981" stroke-width="2" rx="8"/>
+    <circle cx="25" cy="25" r="12" fill="#3b82f6"/>
+    <text x="25" y="31" text-anchor="middle" fill="white" font-size="12" font-weight="bold">1</text>
+    <text x="25" y="51" text-anchor="middle" fill="#10b981" font-size="16">✓</text>
+    <text x="50" y="35" fill="#374151" font-size="16" font-weight="bold">Review DTS/DTA</text>
+    <text x="50" y="55" fill="#6b7280" font-size="14">Review from IRT vendor</text>
+    <text x="50" y="75" fill="#6b7280" font-size="12">📎 2 附件</text>
+
+    <!-- 连接线 -->
+    <line x1="90" y1="100" x2="90" y2="140" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- 节点2 - 进行中 -->
+    <rect x="0" y="140" width="180" height="100" fill="#fffbeb" stroke="#f59e0b" stroke-width="2" rx="8"/>
+    <circle cx="25" cy="165" r="12" fill="#3b82f6"/>
+    <text x="25" y="171" text-anchor="middle" fill="white" font-size="12" font-weight="bold">2</text>
+    <text x="25" y="191" text-anchor="middle" fill="#f59e0b" font-size="16">●</text>
+    <text x="50" y="175" fill="#374151" font-size="16" font-weight="bold">Request Data</text>
+    <text x="50" y="195" fill="#6b7280" font-size="14">Dummy rand & kit data</text>
+    <text x="50" y="215" fill="#6b7280" font-size="12">↑ 可上传</text>
+
+    <!-- 分支线 -->
+    <line x1="90" y1="240" x2="90" y2="280" stroke="#6b7280" stroke-width="2"/>
+    <line x1="90" y1="280" x2="320" y2="280" stroke="#6b7280" stroke-width="2"/>
+    <line x1="20" y1="280" x2="90" y2="280" stroke="#6b7280" stroke-width="2"/>
+    <line x1="20" y1="280" x2="20" y2="320" stroke="#6b7280" stroke-width="2"/>
+    <line x1="320" y1="280" x2="320" y2="320" stroke="#6b7280" stroke-width="2"/>
+
+    <!-- 节点3A -->
+    <rect x="-80" y="320" width="160" height="80" fill="white" stroke="#e5e7eb" stroke-width="2" rx="8"/>
+    <circle cx="-50" cy="345" r="12" fill="#3b82f6"/>
+    <text x="-50" y="351" text-anchor="middle" fill="white" font-size="12" font-weight="bold">2A</text>
+    <text x="-25" y="355" fill="#374151" font-size="14" font-weight="bold">Production</text>
+    <text x="-25" y="375" fill="#6b7280" font-size="12">Production List</text>
+
+    <!-- 节点3B -->
+    <rect x="240" y="320" width="160" height="80" fill="white" stroke="#e5e7eb" stroke-width="2" rx="8"/>
+    <circle cx="270" cy="345" r="12" fill="#3b82f6"/>
+    <text x="270" y="351" text-anchor="middle" fill="white" font-size="12" font-weight="bold">2B</text>
+    <text x="295" y="355" fill="#374151" font-size="14" font-weight="bold">UAT</text>
+    <text x="295" y="375" fill="#6b7280" font-size="12">UAT Environment</text>
+  </g>
+
+  <!-- 工具栏 -->
+  <rect x="900" y="150" width="300" height="40" fill="#f3f4f6" rx="6"/>
+  <text x="920" y="173" fill="#374151" font-size="14">导出流程图</text>
+  <text x="1020" y="173" fill="#374151" font-size="14">分享链接</text>
+  <text x="1110" y="173" fill="#374151" font-size="14">全屏</text>
+
+  <!-- 箭头定义 -->
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/>
+    </marker>
+  </defs>
+
+  <!-- 状态说明 -->
+  <text x="40" y="710" fill="#6b7280" font-size="14">✓ 已完成  ● 进行中  ○ 待开始  📎 有附件  ↑ 可上传</text>
+</svg>
+
