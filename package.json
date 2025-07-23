@@ -8,7 +8,7 @@
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
     "deploy": "gh-pages -d dist",
-    "deploy:irt": "gh-pages -d dist -r irt_az"
+    "deploy:irt": "gh-pages -d dist -r https://github.com/azu-oncology-rd/dummy_irt.git"
   },
   "dependencies": {
     "@vue-flow/background": "^1.3.2",

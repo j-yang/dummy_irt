@@ -1,11 +1,10 @@
 <template>
   <div class="interactive-flowchart">
     <div class="flowchart-header">
-      <h1>DBL Process Flow - Interactive Version</h1>
+      <h1>Interactive Flow Chart</h1>
       <div class="toolbar">
-        <button @click="exportFlow" class="btn btn-primary">导出流程图</button>
-        <button @click="shareFlow" class="btn btn-secondary">分享链接</button>
-        <button @click="toggleFullscreen" class="btn btn-tertiary">全屏</button>
+        <button @click="exportFlow" class="btn btn-primary">Export Flow Chart</button>
+        <button @click="toggleFullscreen" class="btn btn-tertiary">Fullscreen</button>
       </div>
     </div>
 
@@ -78,7 +77,7 @@
                 <div v-else-if="nodeProps.data.inProgress" class="icon-progress">⏳</div>
                 <div v-else class="icon-pending">⏸</div>
               </div>
-              <!-- 添加完成状态复选框 -->
+              <!-- Completion status checkbox -->
               <div class="completion-checkbox" @click.stop="toggleNodeCompletion(nodeProps.data)">
                 <input
                   type="checkbox"
@@ -100,7 +99,7 @@
                   <div class="icon-attachment">📎</div> {{ nodeProps.data.attachments?.length || 0 }}
                 </span>
                 <span v-if="nodeProps.data.hasUpload" class="upload-indicator">
-                  <div class="icon-upload">📤</div> 可上传
+                  <div class="icon-upload">📤</div> Upload Available
                 </span>
               </div>
             </div>
@@ -136,10 +135,10 @@
             <div class="step-detail">
               <p class="description">{{ selectedStep.description }}</p>
 
-              <!-- 第一步的供应商选择区域 -->
+              <!-- First step vendor selection area -->
               <div v-if="selectedStep.id === '1'" class="vendor-selection-section">
-                <h4>选择IRT供应商</h4>
-                <p class="vendor-instruction">请选择您项目使用的IRT供应商，这将决定后续的流程路径：</p>
+                <h4>Select IRT Vendor</h4>
+                <p class="vendor-instruction">Please select the IRT vendor for your project. This will determine the subsequent process flow:</p>
                 <div class="vendor-options">
                   <div class="vendor-option"
                        :class="{ 'selected': selectedVendor === 'sh' }"
@@ -147,7 +146,7 @@
                     <div class="vendor-logo">SH</div>
                     <div class="vendor-info">
                       <h5>Signant Health</h5>
-                      <p>领先的临床试验技术解决方案提供商</p>
+                      <p>Leading clinical trial technology solutions provider</p>
                     </div>
                     <div class="vendor-check" v-if="selectedVendor === 'sh'">✓</div>
                   </div>
@@ -157,7 +156,7 @@
                     <div class="vendor-logo">CA</div>
                     <div class="vendor-info">
                       <h5>Calyx</h5>
-                      <p>专业的临床数据管理和分析平台</p>
+                      <p>Professional clinical data management and analytics platform</p>
                     </div>
                     <div class="vendor-check" v-if="selectedVendor === 'ca'">✓</div>
                   </div>
@@ -165,27 +164,27 @@
                 <div v-if="selectedVendor" class="vendor-confirmation">
                   <div class="confirmation-message">
                     <span class="confirmation-icon">✓</span>
-                    已选择 {{ selectedVendor === 'sh' ? 'Signant Health' : 'Calyx' }} 作为IRT供应商
+                    Selected {{ selectedVendor === 'sh' ? 'Signant Health' : 'Calyx' }} as IRT vendor
                   </div>
                 </div>
               </div>
 
               <p class="status">
-                <strong>状态:</strong>
-                <span v-if="selectedStep.completed" class="status-completed">已完成</span>
-                <span v-else-if="selectedStep.inProgress" class="status-progress">进行中</span>
-                <span v-else class="status-pending">待处理</span>
+                <strong>Status:</strong>
+                <span v-if="selectedStep.completed" class="status-completed">Completed</span>
+                <span v-else-if="selectedStep.inProgress" class="status-progress">In Progress</span>
+                <span v-else class="status-pending">Pending</span>
               </p>
 
               <div v-if="selectedStep.notes && selectedStep.notes.length > 0" class="notes">
-                <strong>备注:</strong>
+                <strong>Notes:</strong>
                 <ul>
                   <li v-for="note in selectedStep.notes" :key="note">{{ note }}</li>
                 </ul>
               </div>
 
               <div v-if="selectedStep.links && selectedStep.links.length > 0" class="links">
-                <strong>相关链接:</strong>
+                <strong>Related Links:</strong>
                 <div class="link-list">
                   <a
                     v-for="link in selectedStep.links"
@@ -200,48 +199,18 @@
               </div>
 
               <div v-if="selectedStep.hasUpload" class="upload-section">
-                <strong>文件上��:</strong>
+                <strong>File Upload:</strong>
                 <div class="upload-area">
                   <label for="file-upload" class="file-upload-btn">
-                    选择文件
+                    Choose File
                     <input id="file-upload" type="file" @change="onFileSelected" />
                   </label>
-                  <span class="upload-note">上传文件到此步骤</span>
+                  <span class="upload-note">Upload file to this step</span>
                 </div>
               </div>
             </div>
             <div class="modal-actions">
-              <button @click="closeStepModal" class="btn btn-secondary">关闭</button>
-            </div>
-          </div>
-        </div>
-      </transition>
-    </Teleport>
-
-    <!-- Share Modal -->
-    <Teleport to="body">
-      <transition name="modal-fade">
-        <div v-if="showShareModal" class="modal-overlay" @click="closeShareModal">
-          <div class="modal-content" @click.stop>
-            <div class="modal-header">
-              <h3>分享流程图</h3>
-              <button class="close-btn" @click="closeShareModal">×</button>
-            </div>
-            <div class="share-options">
-              <div class="share-link">
-                <label>分享链��：</label>
-                <div class="copy-field">
-                  <input :value="shareUrl" readonly @click="copyToClipboard" />
-                  <button @click="copyToClipboard" class="btn btn-sm">�����������制</button>
-                </div>
-              </div>
-              <div class="share-embed">
-                <label>嵌入代码：</label>
-                <div class="copy-field">
-                  <textarea :value="embedCode" readonly></textarea>
-                  <button @click="copyEmbedCode" class="btn btn-sm">复制嵌入代码</button>
-                </div>
-              </div>
+              <button @click="closeStepModal" class="btn btn-secondary">Close</button>
             </div>
           </div>
         </div>
@@ -620,7 +589,6 @@ const elementsInitialized = ref(false);
 
 // App state
 const selectedStep = ref<StepData | null>(null);
-const showShareModal = ref(false);
 const hoveredNodeId = ref<string | null>(null);
 const activeVendor = ref('all'); // 'all', 'sh', 'ca'
 const highlightedPath = ref<string[]>([]);
@@ -710,27 +678,9 @@ const exportFlow = async () => {
   const canvas = await html2canvas(flowElement as HTMLElement)
   canvas.toBlob((blob) => {
     if (blob) {
-      saveAs(blob, 'dbl-process-flow.png')
+      saveAs(blob, 'flow-chart.png')
     }
   })
-}
-
-const shareFlow = () => {
-  showShareModal.value = true
-}
-
-const closeShareModal = () => {
-  showShareModal.value = false
-}
-
-const copyToClipboard = () => {
-  navigator.clipboard.writeText(shareUrl.value)
-  alert('链接已复制到剪贴板')
-}
-
-const copyEmbedCode = () => {
-  navigator.clipboard.writeText(embedCode.value)
-  alert('嵌入代码已复制到剪贴板')
 }
 
 const toggleFullscreen = () => {
@@ -787,7 +737,7 @@ const onFileSelected = (event: Event) => {
   if (input.files && input.files.length > 0 && selectedStep.value) {
     const file = input.files[0]
     handleFileUpload(selectedStep.value.id, file, true)
-    alert(`文件 "${file.name}" 已上传`)
+    alert(`File "${file.name}" uploaded successfully`)
 
     // Reset the file input
     input.value = ''
@@ -1596,55 +1546,6 @@ onBeforeUnmount(() => {
 
 .status-btn:hover {
   background: #e5e7eb;
-}
-
-.share-options {
-  padding: 1.5rem;
-}
-
-.share-link, .share-embed {
-  margin-bottom: 1.25rem;
-}
-
-.share-link label, .share-embed label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.copy-field {
-  display: flex;
-  margin-top: 0.5rem;
-}
-
-.copy-field input, .copy-field textarea {
-  flex: 1;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-right: none;
-  border-radius: 0.375rem 0 0 0.375rem;
-  font-size: 0.875rem;
-  background: #f9fafb;
-}
-
-.copy-field textarea {
-  resize: none;
-  height: 80px;
-}
-
-.copy-field button {
-  border-radius: 0 0.375rem 0.375rem 0;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.copy-field button:hover {
-  background: #2563eb;
 }
 
 /* Vendor selector styling */

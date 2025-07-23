@@ -1,60 +1,60 @@
 <template>
   <div class="data-sync-panel">
-    <h3>数据同步到 OneDrive</h3>
+    <h3>Data Sync to OneDrive</h3>
 
-    <!-- 浏览器支持检查 -->
+    <!-- Browser support check -->
     <div v-if="!isSupported" class="warning-message">
-      <p>⚠️ 你的浏览器不支持文件系统 API，请使用 Chrome 86+ 或 Edge 86+</p>
+      <p>⚠️ Your browser does not support the File System API. Please use Chrome 86+ or Edge 86+</p>
     </div>
 
     <div v-else class="sync-content">
-      <!-- 选择文件夹 -->
+      <!-- Select folder -->
       <div class="sync-section">
-        <h4>📁 选择同步文件夹</h4>
+        <h4>📁 Select Sync Folder</h4>
         <div v-if="!hasTargetDirectory" class="folder-selection">
-          <p>请选择你的 OneDrive 文件夹作为数据备份位置：</p>
+          <p>Please select your OneDrive folder as the data backup location:</p>
           <button @click="selectFolder" class="select-folder-btn">
-            选择文件夹
+            Select Folder
           </button>
         </div>
         <div v-else class="folder-selected">
-          <p>✅ 已选择文件夹: <strong>{{ targetDirectoryName }}</strong></p>
+          <p>✅ Selected folder: <strong>{{ targetDirectoryName }}</strong></p>
           <button @click="selectFolder" class="change-folder-btn">
-            更换文件夹
+            Change Folder
           </button>
         </div>
       </div>
 
-      <!-- 手动同步 -->
+      <!-- Manual sync -->
       <div v-if="hasTargetDirectory" class="sync-section">
-        <h4>💾 手动备份数据</h4>
+        <h4>💾 Manual Data Backup</h4>
         <div class="manual-sync">
           <button
             @click="exportData"
             :disabled="syncStatus === 'syncing'"
             class="export-btn"
           >
-            <span v-if="syncStatus === 'syncing'">正在备份...</span>
-            <span v-else>立即备份到 OneDrive</span>
+            <span v-if="syncStatus === 'syncing'">Backing up...</span>
+            <span v-else>Backup to OneDrive Now</span>
           </button>
 
           <div v-if="lastSyncTime" class="last-sync">
-            上次备份: {{ formatTime(lastSyncTime) }}
+            Last backup: {{ formatTime(lastSyncTime) }}
           </div>
         </div>
       </div>
 
-      <!-- 导入其他用户数据 -->
+      <!-- Import collaboration data -->
       <div v-if="hasTargetDirectory" class="sync-section">
-        <h4>📥 导入协作数据</h4>
+        <h4>📥 Import Collaboration Data</h4>
         <div class="import-section">
-          <p>从 OneDrive 文件夹导入其他用户的备份数据：</p>
+          <p>Import backup data from other users from your OneDrive folder:</p>
           <button @click="showBackupFiles" class="list-backups-btn">
-            查看备份文件
+            View Backup Files
           </button>
 
           <div v-if="backupFiles.length > 0" class="backup-files-list">
-            <h5>可用的备份文件：</h5>
+            <h5>Available backup files:</h5>
             <div v-for="file in backupFiles" :key="file.name" class="backup-file-item">
               <div class="file-info">
                 <span class="file-name">{{ file.name }}</span>
@@ -62,23 +62,23 @@
                 <span class="file-size">{{ formatFileSize(file.size) }}</span>
               </div>
               <div class="file-actions">
-                <button @click="previewBackup(file.name)" class="preview-btn">预览</button>
-                <button @click="importBackup(file.name, 'merge')" class="merge-btn">合并导入</button>
-                <button @click="importBackup(file.name, 'replace')" class="replace-btn">替换导入</button>
+                <button @click="previewBackup(file.name)" class="preview-btn">Preview</button>
+                <button @click="importBackup(file.name, 'merge')" class="merge-btn">Merge Import</button>
+                <button @click="importBackup(file.name, 'replace')" class="replace-btn">Replace Import</button>
               </div>
             </div>
           </div>
 
           <div v-if="previewData" class="preview-panel">
-            <h5>备份预览：</h5>
+            <h5>Backup Preview:</h5>
             <div class="preview-content">
-              <p><strong>备份时间：</strong> {{ new Date(previewData.timestamp).toLocaleString('zh-CN') }}</p>
-              <p><strong>项目数量：</strong> {{ previewData.projects?.length || 0 }}</p>
-              <p><strong>Study ���量：</strong> {{ previewData.studies?.length || 0 }}</p>
-              <p><strong>用户标识：</strong> {{ previewData.userInfo?.username || '未知用户' }}</p>
+              <p><strong>Backup time:</strong> {{ new Date(previewData.timestamp).toLocaleString() }}</p>
+              <p><strong>Number of projects:</strong> {{ previewData.projects?.length || 0 }}</p>
+              <p><strong>Number of studies:</strong> {{ previewData.studies?.length || 0 }}</p>
+              <p><strong>User identifier:</strong> {{ previewData.userInfo?.username || 'Unknown user' }}</p>
 
               <details class="project-details">
-                <summary>项目列表 ({{ previewData.projects?.length || 0 }})</summary>
+                <summary>Project list ({{ previewData.projects?.length || 0 }})</summary>
                 <ul>
                   <li v-for="project in previewData.projects" :key="project.id">
                     {{ project.studyName }} ({{ project.studyId }})
@@ -86,32 +86,32 @@
                 </ul>
               </details>
             </div>
-            <button @click="previewData = null" class="close-preview-btn">关闭预览</button>
+            <button @click="previewData = null" class="close-preview-btn">Close Preview</button>
           </div>
         </div>
       </div>
 
-      <!-- 用户设置 -->
+      <!-- User settings -->
       <div v-if="hasTargetDirectory" class="sync-section">
-        <h4>👤 用户设置</h4>
+        <h4>👤 User Settings</h4>
         <div class="user-settings">
           <label>
-            用户名（用于标识你的备份）：
+            Username (to identify your backups):
             <input
               v-model="username"
               @change="saveUsername"
               type="text"
-              placeholder="输入你的名字"
+              placeholder="Enter your name"
               class="username-input"
             >
           </label>
-          <p class="username-note">设置用户名后，备份文件将包含你的身份信息，便于团队协作识别。</p>
+          <p class="username-note">After setting a username, backup files will include your identity information for team collaboration identification.</p>
         </div>
       </div>
 
-      <!-- 自动同步设置 -->
+      <!-- Auto sync settings -->
       <div v-if="hasTargetDirectory" class="sync-section">
-        <h4>🔄 自动同步设置</h4>
+        <h4>🔄 Auto Sync Settings</h4>
         <div class="auto-sync-controls">
           <label class="auto-sync-toggle">
             <input
@@ -119,16 +119,16 @@
               v-model="autoSyncEnabled"
               @change="toggleAutoSync"
             >
-            启用自动同步
+            Enable auto sync
           </label>
 
           <div v-if="autoSyncEnabled" class="sync-interval">
-            <label>同步间隔:</label>
+            <label>Sync interval:</label>
             <select v-model="syncInterval" @change="updateSyncInterval">
-              <option value="15">15 分钟</option>
-              <option value="30">30 分钟</option>
-              <option value="60">1 小时</option>
-              <option value="180">3 小时</option>
+              <option value="15">15 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="60">1 hour</option>
+              <option value="180">3 hours</option>
             </select>
           </div>
 
@@ -138,34 +138,34 @@
               v-model="autoImportEnabled"
               @change="toggleAutoImport"
             >
-            自动检查并合并其他用户的新备份
+            Automatically check and merge new backups from other users
           </label>
         </div>
       </div>
 
-      <!-- 状态显示 -->
+      <!-- Status display -->
       <div v-if="syncStatus !== 'idle'" class="sync-status">
         <div v-if="syncStatus === 'syncing'" class="status-syncing">
-          🔄 正在同步数据...
+          🔄 Syncing data...
         </div>
         <div v-else-if="syncStatus === 'success'" class="status-success">
-          ✅ 数据同步成功！
+          ✅ Data sync successful!
         </div>
         <div v-else-if="syncStatus === 'error'" class="status-error">
-          ❌ 同步失败: {{ error }}
-          <button @click="clearError" class="clear-error-btn">确定</button>
+          ❌ Sync failed: {{ error }}
+          <button @click="clearError" class="clear-error-btn">OK</button>
         </div>
       </div>
 
-      <!-- 说明信息 -->
+      <!-- Information -->
       <div class="sync-info">
-        <h4>📋 功能说明</h4>
+        <h4>📋 Feature Description</h4>
         <ul>
-          <li>所有项目数据和��程图数据��备份到选定的 OneDrive 文件夹</li>
-          <li>备份文件为 JSON 格式，包含时间戳</li>
-          <li>自动同步会定期将最新数据保存到文件</li>
-          <li>你可以在任何设备上访问这些备份文件</li>
-          <li>备份文件可以用于数据恢复和迁移</li>
+          <li>All project data and flow chart data will be backed up to the selected OneDrive folder</li>
+          <li>Backup files are in JSON format and include timestamps</li>
+          <li>Auto sync will periodically save the latest data to files</li>
+          <li>You can access these backup files on any device</li>
+          <li>Backup files can be used for data recovery and migration</li>
         </ul>
       </div>
     </div>
@@ -192,13 +192,13 @@ const {
   clearError
 } = useFileSystemSync()
 
-const syncInterval = ref(30) // 默认 30 分钟
+const syncInterval = ref(30) // Default 30 minutes
 const autoImportEnabled = ref(false)
 const backupFiles = ref<File[]>([])
 const previewData = ref<any>(null)
 const username = ref('')
 
-// 加载保存的用户名
+// Load saved username
 onMounted(() => {
   const savedUsername = localStorage.getItem('sync_username')
   if (savedUsername) {
@@ -226,11 +226,11 @@ const updateSyncInterval = async () => {
 }
 
 const toggleAutoImport = () => {
-  // TODO: 实现自动导入功能
+  // TODO: Implement auto import functionality
   console.log('Auto import toggled:', autoImportEnabled.value)
 }
 
-// 查看备份文件
+// View backup files
 const showBackupFiles = async () => {
   try {
     const files = await fileSystemSync.listBackupFiles()
@@ -241,7 +241,7 @@ const showBackupFiles = async () => {
   }
 }
 
-// 预览备份文件
+// Preview backup file
 const previewBackup = async (filename: string) => {
   try {
     const data = await fileSystemSync.previewBackupFile(filename)
@@ -251,13 +251,13 @@ const previewBackup = async (filename: string) => {
   }
 }
 
-// 导入备份文件
+// Import backup file
 const importBackup = async (filename: string, mode: 'merge' | 'replace') => {
   try {
     const success = await fileSystemSync.importAllData(filename, mode)
     if (success) {
       console.log(`Successfully imported ${filename} in ${mode} mode`)
-      // 刷新页面以显示新数据
+      // Refresh page to display new data
       window.location.reload()
     }
   } catch (err) {
@@ -265,23 +265,23 @@ const importBackup = async (filename: string, mode: 'merge' | 'replace') => {
   }
 }
 
-// 保存用户名
+// Save username
 const saveUsername = () => {
   localStorage.setItem('sync_username', username.value)
   console.log('Username saved:', username.value)
 }
 
-// 格式化时间
+// Format time
 const formatTime = (date: Date) => {
-  return date.toLocaleString('zh-CN')
+  return date.toLocaleString()
 }
 
-// 格式化文件日期
+// Format file date
 const formatFileDate = (timestamp: number) => {
-  return new Date(timestamp).toLocaleString('zh-CN')
+  return new Date(timestamp).toLocaleString()
 }
 
-// 格式化文件大小
+// Format file size
 const formatFileSize = (bytes: number) => {
   if (bytes < 1024) return bytes + ' B'
   if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB'

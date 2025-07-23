@@ -2,10 +2,10 @@
 import { ref, onMounted } from 'vue'
 import InteractiveFlowChart from './components/InteractiveFlowChart.vue'
 import EmbeddableFlowChart from './components/EmbeddableFlowChart.vue'
-import TodoFlowChart from './components/TodoFlowChart.vue'
 import ProjectManager from './components/ProjectManager.vue'
 import PWAInstallPrompt from './components/PWAInstallPrompt.vue'
 import DataSyncPanel from './components/DataSyncPanel.vue'
+import IntroductionPanel from './components/IntroductionPanel.vue'
 import { useStudyManager } from '@/composables/useStudyManager'
 
 interface Project {
@@ -21,7 +21,7 @@ interface Project {
   createdAt: string
 }
 
-const activeTab = ref('projects')
+const activeTab = ref('introduction')
 const currentProject = ref<Project | null>(null)
 
 // 使用 IndexedDB study 管理器
@@ -82,7 +82,7 @@ const loadFromURL = async () => {
 
   // 如果路径末尾不是根路径，则尝试加载项目
   if (studyId && studyId !== '' && !studyId.includes('.')) {
-    // 从localStorage加载项目数据
+    // 从localStorage加载项目数���
     const saved = localStorage.getItem('projectManager_projects')
     if (saved) {
       const projects = JSON.parse(saved)
@@ -136,7 +136,7 @@ HotKey=0`
   a.click()
   URL.revokeObjectURL(url)
 
-  // 显示下载成功消息
+  // 显示下载成功���息
   alert(`项目快捷方式已下载！\n您可以双击此快捷方式文件访问项目: ${project.studyId}`)
 }
 
@@ -163,14 +163,21 @@ onMounted(async () => {
 
     <header class="app-header">
       <div class="header-content">
-        <h1>DBL Process Flow System</h1>
+        <h1>Dummy IRT for Biopharma Studies</h1>
         <nav class="nav-tabs">
+          <button
+            @click="activeTab = 'introduction'"
+            :class="{ active: activeTab === 'introduction' }"
+            class="nav-tab"
+          >
+            📖 Introduction
+          </button>
           <button
             @click="activeTab = 'projects'"
             :class="{ active: activeTab === 'projects' }"
             class="nav-tab"
           >
-            📊 项目管理
+            📊 Project Management
           </button>
           <button
             @click="activeTab = 'interactive'"
@@ -178,28 +185,21 @@ onMounted(async () => {
             class="nav-tab"
             :disabled="!currentProject"
           >
-            🎯 流程图工具
+            🎯 Flow Chart Tool
           </button>
           <button
             @click="activeTab = 'embed'"
             :class="{ active: activeTab === 'embed' }"
             class="nav-tab"
           >
-            📱 嵌入式预览
-          </button>
-          <button
-            @click="activeTab = 'todo'"
-            :class="{ active: activeTab === 'todo' }"
-            class="nav-tab"
-          >
-            📝 原版流程图
+            📱 Embed Preview
           </button>
           <button
             @click="activeTab = 'sync'"
             :class="{ active: activeTab === 'sync' }"
             class="nav-tab"
           >
-            ☁️ 数据同步
+            ☁️ Data Sync
           </button>
         </nav>
       </div>
@@ -207,7 +207,7 @@ onMounted(async () => {
       <!-- 项目信息显示 -->
       <div v-if="currentProject && activeTab === 'interactive'" class="project-info">
         <div class="project-breadcrumb">
-          <button @click="backToProjects" class="breadcrumb-btn">← 返回项目列表</button>
+          <button @click="backToProjects" class="breadcrumb-btn">← Back to Projects</button>
           <span class="project-name">{{ currentProject.studyName }}</span>
         </div>
       </div>
@@ -222,11 +222,12 @@ onMounted(async () => {
 
       <!-- 加载指示器 -->
       <div v-if="loading" class="loading-banner">
-        <span>正在加载...</span>
+        <span>Loading...</span>
       </div>
 
+      <IntroductionPanel v-if="activeTab === 'introduction'" />
       <ProjectManager
-        v-if="activeTab === 'projects'"
+        v-else-if="activeTab === 'projects'"
         @openProject="handleOpenProject"
         @copyProjectLink="copyProjectLink"
       />
@@ -238,13 +239,12 @@ onMounted(async () => {
       />
       <EmbeddableFlowChart
         v-else-if="activeTab === 'embed'"
-        title="DBL Process Flow - 嵌入式预览"
+        title="Dummy IRT - Embed Preview"
         :readonly="false"
         :show-powered-by="true"
         width="100%"
         height="600px"
       />
-      <TodoFlowChart v-else-if="activeTab === 'todo'" />
       <DataSyncPanel v-else-if="activeTab === 'sync'" />
     </main>
   </div>

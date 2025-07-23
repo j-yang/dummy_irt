@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 
 interface Project {
   id: string
@@ -21,6 +21,41 @@ const stats = reactive({
   active: 0,
   completed: 0
 })
+
+// 筛选器状态
+const filters = reactive({
+  therapeuticArea: '',
+  irtVendor: '',
+  vendorDataSource: '',
+  searchText: ''
+})
+
+// 计算属性：筛选后的项目
+const filteredProjects = computed(() => {
+  return projects.value.filter(project => {
+    const matchesTA = !filters.therapeuticArea || project.therapeuticArea === filters.therapeuticArea
+    const matchesVendor = !filters.irtVendor || project.irtVendor === filters.irtVendor
+    const matchesDataSource = !filters.vendorDataSource || project.vendorDataSource === filters.vendorDataSource
+    const matchesSearch = !filters.searchText ||
+      project.studyId.toLowerCase().includes(filters.searchText.toLowerCase()) ||
+      project.studyName.toLowerCase().includes(filters.searchText.toLowerCase())
+
+    return matchesTA && matchesVendor && matchesDataSource && matchesSearch
+  })
+})
+
+// 重置筛选器
+const resetFilters = () => {
+  filters.therapeuticArea = ''
+  filters.irtVendor = ''
+  filters.vendorDataSource = ''
+  filters.searchText = ''
+}
+
+// 获取筛选器选项
+const getFilterOptions = (field: keyof Project) => {
+  return [...new Set(projects.value.map(p => p[field] as string))].filter(Boolean).sort()
+}
 
 const newProject = reactive({
   studyId: '',
@@ -235,11 +270,119 @@ const updateStats = () => {
   stats.completed = projects.value.filter(p => p.status === 'closed').length
 }
 
+// 创建示例项目数据
+const createSampleProjects = () => {
+  const sampleProjects: Project[] = [
+    {
+      id: generateId(),
+      studyId: 'ONCO-2024-001',
+      studyName: 'Phase III Lung Cancer Immunotherapy Study',
+      therapeuticArea: 'Oncology',
+      irtVendor: 'IQVIA RTSM',
+      vendorDataSource: 'UAT Test Environment',
+      leadProgrammer: 'Sarah Chen',
+      nextMilestone: 'First Patient First Visit',
+      status: 'ongoing',
+      createdAt: new Date('2024-01-15').toISOString()
+    },
+    {
+      id: generateId(),
+      studyId: 'CARDIO-2024-002',
+      studyName: 'Cardiovascular Risk Reduction Trial',
+      therapeuticArea: 'Cardiovascular',
+      irtVendor: 'Medidata Rave RTSM',
+      vendorDataSource: 'Production Data',
+      leadProgrammer: 'Michael Rodriguez',
+      nextMilestone: 'Interim Analysis',
+      status: 'ongoing',
+      createdAt: new Date('2024-02-20').toISOString()
+    },
+    {
+      id: generateId(),
+      studyId: 'CNS-2023-015',
+      studyName: 'Alzheimer Disease Cognitive Enhancement Study',
+      therapeuticArea: 'CNS',
+      irtVendor: 'Oracle InForm IWRS',
+      vendorDataSource: 'Staging Environment',
+      leadProgrammer: 'Dr. Emily Watson',
+      nextMilestone: 'Database Lock',
+      status: 'closed',
+      createdAt: new Date('2023-08-10').toISOString()
+    },
+    {
+      id: generateId(),
+      studyId: 'RESP-2024-007',
+      studyName: 'Asthma Biologics Efficacy Trial',
+      therapeuticArea: 'Respiratory',
+      irtVendor: 'Bioclinica IRT',
+      vendorDataSource: 'UAT Test Environment',
+      leadProgrammer: 'James Liu',
+      nextMilestone: 'Last Patient Last Visit',
+      status: 'ongoing',
+      createdAt: new Date('2024-03-05').toISOString()
+    },
+    {
+      id: generateId(),
+      studyId: 'IMMUNO-2024-012',
+      studyName: 'Rheumatoid Arthritis JAK Inhibitor Study',
+      therapeuticArea: 'Immunology',
+      irtVendor: 'IQVIA RTSM',
+      vendorDataSource: 'Production Data',
+      leadProgrammer: 'Anna Kowalski',
+      nextMilestone: 'Safety Run-in Complete',
+      status: 'ongoing',
+      createdAt: new Date('2024-01-30').toISOString()
+    },
+    {
+      id: generateId(),
+      studyId: 'METAB-2024-003',
+      studyName: 'Type 2 Diabetes GLP-1 Agonist Trial',
+      therapeuticArea: 'Metabolic',
+      irtVendor: 'Medidata Rave RTSM',
+      vendorDataSource: 'Development Environment',
+      leadProgrammer: 'David Kumar',
+      nextMilestone: 'Dose Escalation Phase',
+      status: 'ongoing',
+      createdAt: new Date('2024-02-14').toISOString()
+    },
+    {
+      id: generateId(),
+      studyId: 'DERMA-2023-008',
+      studyName: 'Psoriasis Topical Treatment Study',
+      therapeuticArea: 'Dermatology',
+      irtVendor: 'Oracle InForm IWRS',
+      vendorDataSource: 'UAT Test Environment',
+      leadProgrammer: 'Lisa Zhang',
+      nextMilestone: 'Study Closure',
+      status: 'closed',
+      createdAt: new Date('2023-06-12').toISOString()
+    },
+    {
+      id: generateId(),
+      studyId: 'INFECT-2024-005',
+      studyName: 'Novel Antibiotic Resistance Study',
+      therapeuticArea: 'Infectious Disease',
+      irtVendor: 'Bioclinica IRT',
+      vendorDataSource: 'Staging Environment',
+      leadProgrammer: 'Robert Thompson',
+      nextMilestone: 'Primary Endpoint Analysis',
+      status: 'ongoing',
+      createdAt: new Date('2024-03-20').toISOString()
+    }
+  ]
+
+  return sampleProjects
+}
+
 // 加载项目数据
 const loadProjects = () => {
   const saved = localStorage.getItem('projectManager_projects')
   if (saved) {
     projects.value = JSON.parse(saved)
+  } else {
+    // 如果没有保存的数据，创建示例项目
+    projects.value = createSampleProjects()
+    saveProjects()
   }
 }
 
@@ -394,7 +537,6 @@ const cancelEdit = () => {
     <div class="sidebar">
       <div class="sidebar-header">
         <h1>🧪 Dummy IRT Manager</h1>
-        <p class="subtitle">Clinical Trial Virtual Randomization & Drug Management System</p>
         <p class="description">Generate Dummy RAND and KIT data for Dry Run phase</p>
       </div>
 
@@ -406,6 +548,65 @@ const cancelEdit = () => {
       >
         {{ showCreateForm ? 'Cancel Creation' : '+ Create New Study' }}
       </button>
+
+      <!-- 筛选器区域 -->
+      <div class="filter-section">
+        <h2>Filter Studies</h2>
+        <div class="filter-group">
+          <label for="therapeuticAreaFilter">TA (Therapeutic Area)</label>
+          <select
+            id="therapeuticAreaFilter"
+            v-model="filters.therapeuticArea"
+          >
+            <option value="">All Therapeutic Areas</option>
+            <option v-for="ta in getFilterOptions('therapeuticArea')" :key="ta" :value="ta">
+              {{ ta }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="irtVendorFilter">IRT Vendor</label>
+          <select
+            id="irtVendorFilter"
+            v-model="filters.irtVendor"
+          >
+            <option value="">All IRT Vendors</option>
+            <option v-for="vendor in getFilterOptions('irtVendor')" :key="vendor" :value="vendor">
+              {{ vendor }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="vendorDataSourceFilter">Vendor Dummy Data Source</label>
+          <select
+            id="vendorDataSourceFilter"
+            v-model="filters.vendorDataSource"
+          >
+            <option value="">All Data Sources</option>
+            <option v-for="source in getFilterOptions('vendorDataSource')" :key="source" :value="source">
+              {{ source }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="searchTextFilter">Search</label>
+          <input
+            type="text"
+            id="searchTextFilter"
+            v-model="filters.searchText"
+            placeholder="Search by Study ID or Name"
+          />
+        </div>
+
+        <div class="filter-actions">
+          <button @click="resetFilters" class="btn btn-secondary">
+            Reset Filters
+          </button>
+        </div>
+      </div>
 
       <!-- 创建项目表单 -->
       <div v-if="showCreateForm" class="project-form">
@@ -517,18 +718,6 @@ const cancelEdit = () => {
           <div class="stat-label">Completed Studies</div>
         </div>
       </div>
-
-      <!-- 说明信息 -->
-      <div class="info-panel">
-        <h3>🔒 Dummy IRT Instructions</h3>
-        <ul>
-          <li>• Generate virtual data for Dry Run phase</li>
-          <li>• Support for major IRT vendors</li>
-          <li>• Choose UAT or production environment data</li>
-          <li>• Generate Dummy RAND and KIT data</li>
-          <li>• Ensure trial process correctness</li>
-        </ul>
-      </div>
     </div>
 
     <!-- 主内容区域 -->
@@ -542,7 +731,7 @@ const cancelEdit = () => {
         </div>
 
         <!-- 项目列表 -->
-        <div v-if="projects.length === 0" class="empty-state">
+        <div v-if="filteredProjects.length === 0" class="empty-state">
           <div class="empty-icon">🧪</div>
           <h3>No Research Projects</h3>
           <p>Create your first Dummy IRT research project</p>
@@ -551,7 +740,7 @@ const cancelEdit = () => {
 
         <div v-else class="projects-grid">
           <div
-            v-for="project in projects"
+            v-for="project in filteredProjects"
             :key="project.id"
             class="study-card"
             :class="{ 'status-active': project.status === 'ongoing' }"
@@ -740,7 +929,7 @@ const cancelEdit = () => {
   font-weight: 500;
 }
 
-.subtitle {
+.description {
   color: #6b7280;
   margin-bottom: 30px;
   font-size: 0.9em;
@@ -1177,5 +1366,53 @@ const cancelEdit = () => {
   margin-bottom: 20px;
   font-size: 1.1em;
   font-weight: 500;
+}
+
+.filter-section {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  border: 1px solid #e5e7eb;
+}
+
+.filter-section h2 {
+  color: #374151;
+  margin-bottom: 15px;
+  font-size: 1.1em;
+  font-weight: 500;
+}
+
+.filter-group {
+  margin-bottom: 15px;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.filter-group select,
+.filter-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+  outline: none;
+  border-color: #9ca3af;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
 }
 </style>
