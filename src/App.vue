@@ -1,11 +1,113 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import InteractiveFlowChart from './components/InteractiveFlowChart.vue'
 import EmbeddableFlowChart from './components/EmbeddableFlowChart.vue'
 import TodoFlowChart from './components/TodoFlowChart.vue'
+import ProjectManager from './components/ProjectManager.vue'
 import PWAInstallPrompt from './components/PWAInstallPrompt.vue'
 
-const activeTab = ref('interactive')
+interface Project {
+  id: string
+  studyId: string
+  studyName: string
+  therapeuticArea: string
+  irtVendor: string
+  vendorDataSource: string
+  leadProgrammer: string
+  nextMilestone: string
+  status: 'ongoing' | 'closed'
+  createdAt: string
+}
+
+const activeTab = ref('projects')
+const currentProject = ref<Project | null>(null)
+
+// 处理项目打开事件
+const handleOpenProject = (project: any) => {
+  currentProject.value = project
+  activeTab.value = 'interactive'
+
+  // 更新URL，使用Study ID作为路径
+  const basePath = window.location.pathname
+  const newPath = basePath.endsWith('/') ? `${basePath}${project.studyId}` : `${basePath}/${project.studyId}`
+  window.history.pushState({}, '', newPath)
+}
+
+// 返回项目列表
+const backToProjects = () => {
+  activeTab.value = 'projects'
+  currentProject.value = null
+
+  // 返回到根路径
+  const basePath = window.location.pathname.split('/').slice(0, -1).join('/') || '/'
+  window.history.pushState({}, '', basePath)
+}
+
+// 从URL加载项目
+const loadFromURL = () => {
+  const pathParts = window.location.pathname.split('/')
+  const studyId = pathParts[pathParts.length - 1]
+
+  // 如果路径末尾不是根路径，则尝试加载项目
+  if (studyId && studyId !== '' && !studyId.includes('.')) {
+    // 从localStorage加载项目数据
+    const saved = localStorage.getItem('projectManager_projects')
+    if (saved) {
+      const projects = JSON.parse(saved)
+      const project = projects.find((p: any) => p.studyId === studyId)
+      if (project) {
+        currentProject.value = project
+        activeTab.value = 'interactive'
+      } else {
+        // 如果项目不存在，返回项目列表
+        backToProjects()
+      }
+    }
+  }
+}
+
+// 切换标签页时更新URL
+const switchTab = (tabName: string) => {
+  activeTab.value = tabName
+
+  // 标签���切换不改变URL中的项目ID
+  if (currentProject.value && tabName !== 'projects') {
+    // 保持当前的项目URL
+    return
+  }
+}
+
+// 下载项目快捷方式（原复制项目链接）
+const copyProjectLink = (project: any) => {
+  const basePath = window.origin + window.location.pathname
+  const projectUrl = basePath.endsWith('/') ? `${basePath}${project.studyId}` : `${basePath}/${project.studyId}`
+
+  // 创建Windows快捷方式文件内容
+  const shortcutContent = `[InternetShortcut]
+URL=${projectUrl}
+IconIndex=0
+HotKey=0`
+
+  // 创建Blob并触发下载
+  const blob = new Blob([shortcutContent], { type: 'application/x-internet-shortcut' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${project.studyId}_项目快捷方式.url`
+  a.click()
+  URL.revokeObjectURL(url)
+
+  // 显示下载成功消息
+  alert(`项目快捷方式已下载！\n您可以双击此快捷方式文件访问项目: ${project.studyId}`)
+}
+
+// 组件挂载时从URL加载
+onMounted(() => {
+  loadFromURL()
+
+  // 监听浏览器后退/前进按钮
+  window.addEventListener('popstate', loadFromURL)
+})
 </script>
 
 <template>
@@ -14,34 +116,60 @@ const activeTab = ref('interactive')
     <PWAInstallPrompt />
 
     <header class="app-header">
-      <h1>DBL Process Flow System</h1>
-      <nav class="nav-tabs">
-        <button
-          @click="activeTab = 'interactive'"
-          :class="{ active: activeTab === 'interactive' }"
-          class="nav-tab"
-        >
-          交互式流程图
-        </button>
-        <button
-          @click="activeTab = 'embed'"
-          :class="{ active: activeTab === 'embed' }"
-          class="nav-tab"
-        >
-          嵌入式预览
-        </button>
-        <button
-          @click="activeTab = 'todo'"
-          :class="{ active: activeTab === 'todo' }"
-          class="nav-tab"
-        >
-          原版流程图
-        </button>
-      </nav>
+      <div class="header-content">
+        <h1>DBL Process Flow System</h1>
+        <nav class="nav-tabs">
+          <button
+            @click="activeTab = 'projects'"
+            :class="{ active: activeTab === 'projects' }"
+            class="nav-tab"
+          >
+            📊 项目管理
+          </button>
+          <button
+            @click="activeTab = 'interactive'"
+            :class="{ active: activeTab === 'interactive' }"
+            class="nav-tab"
+            :disabled="!currentProject"
+          >
+            🎯 流程图工具
+          </button>
+          <button
+            @click="activeTab = 'embed'"
+            :class="{ active: activeTab === 'embed' }"
+            class="nav-tab"
+          >
+            📱 嵌入式预览
+          </button>
+          <button
+            @click="activeTab = 'todo'"
+            :class="{ active: activeTab === 'todo' }"
+            class="nav-tab"
+          >
+            📝 原版流程图
+          </button>
+        </nav>
+      </div>
+
+      <!-- 项目信息显示 -->
+      <div v-if="currentProject && activeTab === 'interactive'" class="project-info">
+        <div class="project-breadcrumb">
+          <button @click="backToProjects" class="breadcrumb-btn">← 返回项目列表</button>
+          <span class="project-name">{{ currentProject.studyName }}</span>
+        </div>
+      </div>
     </header>
 
     <main class="app-main">
-      <InteractiveFlowChart v-if="activeTab === 'interactive'" />
+      <ProjectManager
+        v-if="activeTab === 'projects'"
+        @openProject="handleOpenProject"
+        @copyProjectLink="copyProjectLink"
+      />
+      <InteractiveFlowChart
+        v-else-if="activeTab === 'interactive'"
+        :project="currentProject"
+      />
       <EmbeddableFlowChart
         v-else-if="activeTab === 'embed'"
         title="DBL Process Flow - 嵌入式预览"
@@ -60,46 +188,110 @@ const activeTab = ref('interactive')
   height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  background: #ffffff;
 }
 
 .app-header {
-  background: white;
+  background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
-  padding: 1rem;
+  padding: 1rem 1.5rem;
+  flex-shrink: 0;
 }
 
 .app-header h1 {
   margin: 0 0 1rem 0;
   color: #374151;
   font-size: 1.5rem;
+  font-weight: 500;
 }
 
 .nav-tabs {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
 }
 
 .nav-tab {
   padding: 0.5rem 1rem;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
+  color: #6b7280;
+  font-size: 0.9rem;
 }
 
 .nav-tab:hover {
-  background: #e5e7eb;
+  background: #f3f4f6;
+  color: #374151;
 }
 
 .nav-tab.active {
-  background: #3b82f6;
+  background: #374151;
   color: white;
-  border-color: #3b82f6;
+}
+
+.nav-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .app-main {
   flex: 1;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+/* 确保所有子组件都能充满空间 */
+.app-main > * {
+  flex: 1;
+  height: 100%;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.project-info {
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+}
+
+.project-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.breadcrumb-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.breadcrumb-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.project-name {
+  font-weight: 500;
+  color: #111827;
+  font-size: 0.9rem;
 }
 </style>

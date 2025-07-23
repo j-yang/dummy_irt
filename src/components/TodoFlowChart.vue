@@ -1,6 +1,6 @@
 <template>
   <div class="todo-flowchart">
-    <h1>Current Proposal - DBL Process</h1>
+    <h1>Dummy IRT Process Flow</h1>
     <div class="export-buttons">
       <button @click="exportToJSON" class="export-btn">Export to JSON</button>
       <button @click="exportToPNG" class="export-btn">Export to PNG</button>
@@ -8,10 +8,11 @@
     <VueFlow
       :nodes="nodes"
       :edges="edges"
-      :default-viewport="{ zoom: 0.5, x: 0, y: 0 }"
-      :min-zoom="0.2"
-      :max-zoom="1.2"
+      :default-viewport="{ zoom: 0.7, x: 50, y: 0 }"
+      :min-zoom="0.3"
+      :max-zoom="1.5"
       :fit-view-on-init="true"
+      :fit-view-options="{ padding: 0.2 }"
       :pan-on-scroll="false"
       :zoom-on-scroll="true"
       :zoom-on-pinch="true"
@@ -47,10 +48,20 @@
                 <li v-for="note in data.notes" :key="note">{{ note }}</li>
               </ul>
             </div>
+            <div v-if="data.links && data.links.length > 0" class="task-links">
+              <div v-for="link in data.links" :key="link.url" class="link-item">
+                <a :href="link.url" target="_blank" class="reference-link">
+                  {{ link.label }} <span class="link-icon">↗</span>
+                </a>
+              </div>
+            </div>
             <div class="badges">
               <div v-if="data.optional" class="optional-badge">Optional</div>
               <div v-if="data.category" class="category-badge" :class="`badge-${data.category}`">
                 {{ data.category }}
+              </div>
+              <div v-if="data.vendor" class="vendor-badge" :class="`vendor-${data.vendor}`">
+                {{ data.vendor }}
               </div>
             </div>
           </div>
@@ -75,6 +86,8 @@ interface TaskData {
   notes?: string[]
   optional?: boolean
   category?: string
+  links?: { label: string, url: string }[]
+  vendor?: string
 }
 
 interface TaskNode extends Node {
@@ -90,101 +103,243 @@ const nodes: Ref<TaskNode[]> = ref([
     position: { x: 200, y: 50 },
     data: {
       id: '1',
-      title: 'Step 1: Review DTS/DTA',
-      description: 'Review DTS/DTA from IRT vendor',
+      title: 'Step 1: Confirm Vendor',
+      description: 'Select the IRT vendor for your project',
       completed: false,
-      category: 'analysis'
+      category: 'analysis',
+      notes: [
+        'This will determine the flow and available resources for your project'
+      ]
     }
   },
   {
-    id: '2',
+    id: '1a',
     type: 'custom',
-    position: { x: 200, y: 300 },
+    position: { x: -100, y: 250 },
     data: {
-      id: '2',
-      title: 'Step 2: Request Dummy Data',
-      description: 'Request dummy rand & kit from IRT vendor to check data structure and code list',
+      id: '1a',
+      title: 'SH Vendor',
+      description: 'Signant Health (SH) vendor selected',
       completed: false,
-      category: 'data'
+      category: 'analysis',
+      vendor: 'sh'
+    }
+  },
+  {
+    id: '1b',
+    type: 'custom',
+    position: { x: 500, y: 250 },
+    data: {
+      id: '1b',
+      title: 'CA Vendor',
+      description: 'Calyx (CA) vendor selected',
+      completed: false,
+      category: 'analysis',
+      vendor: 'ca'
     }
   },
   {
     id: '2a',
     type: 'custom',
-    position: { x: 50, y: 550 },
+    position: { x: -100, y: 450 },
     data: {
       id: '2a',
-      title: 'Step 2A: Data from Production List',
-      description: 'Process data from production list environment',
+      title: 'Step 2: Review SH DTS/DTA',
+      description: 'Review Data Transfer Specification/Data Transfer Agreement from Signant Health',
       completed: false,
-      category: 'data'
+      category: 'analysis',
+      vendor: 'sh',
+      links: [
+        { label: 'SH DTS Template', url: 'https://signanthealth.com/dts-template' },
+        { label: 'SH DTA Reference', url: 'https://signanthealth.com/dta-reference' }
+      ]
     }
   },
   {
     id: '2b',
     type: 'custom',
-    position: { x: 650, y: 550 },
+    position: { x: 500, y: 450 },
     data: {
       id: '2b',
-      title: 'Step 2B: Data from UAT Environment',
-      description: 'Process data from UAT (User Acceptance Testing) environment',
+      title: 'Step 2: Review CA DTS/DTA',
+      description: 'Review Data Transfer Specification/Data Transfer Agreement from Calyx',
       completed: false,
-      category: 'data'
+      category: 'analysis',
+      vendor: 'ca',
+      links: [
+        { label: 'Calyx DTS Template', url: 'https://calyx.ai/dts-template' },
+        { label: 'Calyx DTA Reference', url: 'https://calyx.ai/dta-reference' }
+      ]
     }
   },
   {
-    id: '3',
+    id: '3a',
     type: 'custom',
-    position: { x: 200, y: 800 },
+    position: { x: -100, y: 650 },
     data: {
-      id: '3',
-      title: 'Step 3: Create Dummy Data',
-      description: 'Create dummy rand & kit date by A&R (either by internal team or A&R vendor) for DR code development use',
-      notes: [
-        'If necessary, double confirm the logic of dummy RAND with stats',
-        'Need to discuss whether do we need standardize the macro',
-        'It might be difficult due to different study design for KIT. Rand might be more straight forward'
-      ],
+      id: '3a',
+      title: 'Step 3: Confirm SH Dummy Data Source',
+      description: 'Select the source environment for Signant Health dummy data',
       completed: false,
-      category: 'development'
+      category: 'data',
+      vendor: 'sh'
     }
   },
   {
-    id: '4',
+    id: '3b',
     type: 'custom',
-    position: { x: 200, y: 1100 },
+    position: { x: 500, y: 650 },
     data: {
-      id: '4',
-      title: 'Step 4: Cross Check with Rave Data',
-      description: 'Use IRT blinded report to cross check with Rave data (EX, DA) after LSLV',
-      optional: true,
+      id: '3b',
+      title: 'Step 3: Confirm CA Dummy Data Source',
+      description: 'Select the source environment for Calyx dummy data',
       completed: false,
-      category: 'validation'
+      category: 'data',
+      vendor: 'ca'
     }
   },
   {
-    id: '5',
+    id: '4a1',
     type: 'custom',
-    position: { x: 200, y: 1350 },
+    position: { x: -300, y: 850 },
     data: {
-      id: '5',
-      title: 'Step 5: Follow-up Inconsistencies',
-      description: 'Follow-up with both study team and IRT vendor to address inconsistencies between IRT report and Rave data',
-      optional: true,
+      id: '4a1',
+      title: 'SH Production Environment',
+      description: 'Use production environment data from Signant Health',
       completed: false,
-      category: 'validation'
+      category: 'data',
+      vendor: 'sh'
+    }
+  },
+  {
+    id: '4a2',
+    type: 'custom',
+    position: { x: 100, y: 850 },
+    data: {
+      id: '4a2',
+      title: 'SH UAT Environment',
+      description: 'Use UAT environment data from Signant Health',
+      completed: false,
+      category: 'data',
+      vendor: 'sh'
+    }
+  },
+  {
+    id: '4b1',
+    type: 'custom',
+    position: { x: 300, y: 850 },
+    data: {
+      id: '4b1',
+      title: 'CA Production Environment',
+      description: 'Use production environment data from Calyx',
+      completed: false,
+      category: 'data',
+      vendor: 'ca'
+    }
+  },
+  {
+    id: '4b2',
+    type: 'custom',
+    position: { x: 700, y: 850 },
+    data: {
+      id: '4b2',
+      title: 'CA UAT Environment',
+      description: 'Use UAT environment data from Calyx',
+      completed: false,
+      category: 'data',
+      vendor: 'ca'
+    }
+  },
+  {
+    id: '5a1',
+    type: 'custom',
+    position: { x: -300, y: 1050 },
+    data: {
+      id: '5a1',
+      title: 'SH Dummy Data - Production',
+      description: 'Download SAS macros for creating SH dummy data from production environment',
+      completed: false,
+      category: 'development',
+      vendor: 'sh',
+      links: [
+        { label: 'SH Dummy RAND Production', url: './public/macros/dummy_rand_sh_prod.sas' },
+        { label: 'SH Dummy KIT Production', url: './public/macros/dummy_kit_sh_prod.sas' }
+      ]
+    }
+  },
+  {
+    id: '5a2',
+    type: 'custom',
+    position: { x: 100, y: 1050 },
+    data: {
+      id: '5a2',
+      title: 'SH Dummy Data - UAT',
+      description: 'Download SAS macros for creating SH dummy data from UAT environment',
+      completed: false,
+      category: 'development',
+      vendor: 'sh',
+      links: [
+        { label: 'SH Dummy RAND UAT', url: './public/macros/dummy_rand_sh_uat.sas' },
+        { label: 'SH Dummy KIT UAT', url: './public/macros/dummy_kit_sh_uat.sas' }
+      ]
+    }
+  },
+  {
+    id: '5b1',
+    type: 'custom',
+    position: { x: 300, y: 1050 },
+    data: {
+      id: '5b1',
+      title: 'CA Dummy Data - Production',
+      description: 'Download SAS macros for creating Calyx dummy data from production environment',
+      completed: false,
+      category: 'development',
+      vendor: 'ca',
+      links: [
+        { label: 'Calyx Dummy RAND Production', url: './public/macros/dummy_rand_calyx_prod.sas' },
+        { label: 'Calyx Dummy KIT Production', url: './public/macros/dummy_kit_calyx_prod.sas' }
+      ]
+    }
+  },
+  {
+    id: '5b2',
+    type: 'custom',
+    position: { x: 700, y: 1050 },
+    data: {
+      id: '5b2',
+      title: 'CA Dummy Data - UAT',
+      description: 'Download SAS macros for creating Calyx dummy data from UAT environment',
+      completed: false,
+      category: 'development',
+      vendor: 'ca',
+      links: [
+        { label: 'Calyx Dummy RAND UAT', url: './public/macros/dummy_rand_calyx_uat.sas' },
+        { label: 'Calyx Dummy KIT UAT', url: './public/macros/dummy_kit_calyx_uat.sas' }
+      ]
     }
   }
 ])
 
 const edges: Ref<Edge[]> = ref([
-  { id: 'e1-2', source: '1', target: '2', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 2 } },
-  { id: 'e2-2a', source: '2', target: '2a', type: 'smoothstep', animated: true, style: { stroke: '#a1a1aa', strokeWidth: 2 } },
-  { id: 'e2-2b', source: '2', target: '2b', type: 'smoothstep', animated: true, style: { stroke: '#a1a1aa', strokeWidth: 2 } },
-  { id: 'e2a-3', source: '2a', target: '3', type: 'smoothstep', animated: true, style: { stroke: '#9ca3af', strokeWidth: 2 } },
-  { id: 'e2b-3', source: '2b', target: '3', type: 'smoothstep', animated: true, style: { stroke: '#9ca3af', strokeWidth: 2 } },
-  { id: 'e3-4', source: '3', target: '4', type: 'smoothstep', animated: true, style: { stroke: '#a8a29e', strokeWidth: 2 } },
-  { id: 'e4-5', source: '4', target: '5', type: 'smoothstep', animated: true, style: { stroke: '#a3a3a3', strokeWidth: 2 } }
+  // Step 1 to vendor selection
+  { id: 'e1-1a', source: '1', target: '1a', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 2 } },
+  { id: 'e1-1b', source: '1', target: '1b', type: 'smoothstep', animated: true, style: { stroke: '#94a3b8', strokeWidth: 2 } },
+
+  // SH branch
+  { id: 'e1a-2a', source: '1a', target: '2a', type: 'smoothstep', animated: true, style: { stroke: '#673ab7', strokeWidth: 2 } },
+  { id: 'e2a-3a', source: '2a', target: '3a', type: 'smoothstep', animated: true, style: { stroke: '#673ab7', strokeWidth: 2 } },
+  { id: 'e3a-4a1', source: '3a', target: '4a1', type: 'smoothstep', animated: true, style: { stroke: '#673ab7', strokeWidth: 2 } },
+  { id: 'e3a-4a2', source: '3a', target: '4a2', type: 'smoothstep', animated: true, style: { stroke: '#673ab7', strokeWidth: 2 } },
+  { id: 'e4a1-5a1', source: '4a1', target: '5a1', type: 'smoothstep', animated: true, style: { stroke: '#673ab7', strokeWidth: 2 } },
+  { id: 'e4a2-5a2', source: '4a2', target: '5a2', type: 'smoothstep', animated: true, style: { stroke: '#673ab7', strokeWidth: 2 } },
+
+  // CA branch
+  { id: 'e1b-2b', source: '1b', target: '2b', type: 'smoothstep', animated: true, style: { stroke: '#388e3c', strokeWidth: 2 } },
+  { id: 'e2b-3b', source: '2b', target: '3b', type: 'smoothstep', animated: true, style: { stroke: '#388e3c', strokeWidth: 2 } },
+  { id: 'e3b-4b1', source: '3b', target: '4b1', type: 'smoothstep', animated: true, style: { stroke: '#388e3c', strokeWidth: 2 } },
+  { id: 'e3b-4b2', source: '3b', target: '4b2', type: 'smoothstep', animated: true, style: { stroke: '#388e3c', strokeWidth: 2 } },
+  { id: 'e4b1-5b1', source: '4b1', target: '5b1', type: 'smoothstep', animated: true, style: { stroke: '#388e3c', strokeWidth: 2 } },
+  { id: 'e4b2-5b2', source: '4b2', target: '5b2', type: 'smoothstep', animated: true, style: { stroke: '#388e3c', strokeWidth: 2 } }
 ])
 
 const { getNodes, getEdges, toObject } = useVueFlow()
@@ -308,9 +463,9 @@ h1 {
   background: white;
   border: 2px solid #ddd;
   border-radius: 12px;
-  padding: 15px;
-  min-width: 600px;
-  max-width: 800px;
+  padding: 20px;
+  min-width: 700px;
+  max-width: 900px;
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   transition: all 0.3s ease;
   display: flex;
@@ -392,6 +547,28 @@ h1 {
   line-height: 1.3;
 }
 
+.task-links {
+  margin: 10px 0;
+  padding: 10px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  border-left: 4px solid #0d6efd;
+}
+
+.link-item {
+  margin: 5px 0;
+}
+
+.reference-link {
+  color: #0d6efd;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.reference-link:hover {
+  text-decoration: underline;
+}
+
 .badges {
   display: flex;
   flex-wrap: wrap;
@@ -416,6 +593,27 @@ h1 {
   font-size: 12px;
   font-weight: 500;
   text-transform: capitalize;
+}
+
+.vendor-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.vendor-sh {
+  background: linear-gradient(135deg, #d1c4e9, #b39ddb);
+  color: #311b92;
+  box-shadow: 0 2px 4px rgba(103, 58, 183, 0.3);
+}
+
+.vendor-ca {
+  background: linear-gradient(135deg, #c8e6c9, #81c784);
+  color: #1b5e20;
+  box-shadow: 0 2px 4px rgba(56, 142, 60, 0.3);
 }
 
 .category-analysis {
