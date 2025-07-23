@@ -7,5 +7,23 @@ import './assets/main.css'
 
 import { createApp } from 'vue'
 import App from './App.vue'
+import { registerSW } from 'virtual:pwa-register'
 
-createApp(App).mount('#app')
+const app = createApp(App)
+
+// 注册 PWA service worker
+const updateSW = registerSW({
+  onNeedRefresh() {
+    console.log('New content available, please refresh!')
+    // 可以在这里显示更新提示
+    if (confirm('发现新版本，是否立即更新？')) {
+      updateSW(true)
+    }
+  },
+  onOfflineReady() {
+    console.log('App ready to work offline')
+    // 应用已准备好离线工作
+  },
+})
+
+app.mount('#app')

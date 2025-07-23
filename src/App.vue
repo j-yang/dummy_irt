@@ -5,6 +5,8 @@ import EmbeddableFlowChart from './components/EmbeddableFlowChart.vue'
 import TodoFlowChart from './components/TodoFlowChart.vue'
 import ProjectManager from './components/ProjectManager.vue'
 import PWAInstallPrompt from './components/PWAInstallPrompt.vue'
+import DataSyncPanel from './components/DataSyncPanel.vue'
+import { useStudyManager } from '@/composables/useStudyManager'
 
 interface Project {
   id: string
@@ -22,10 +24,39 @@ interface Project {
 const activeTab = ref('projects')
 const currentProject = ref<Project | null>(null)
 
+// 使用 IndexedDB study 管理器
+const {
+  studies,
+  currentStudy,
+  loading,
+  error,
+  initializeDB,
+  loadStudies,
+  createNewStudy,
+  saveStudy,
+  loadStudy,
+  setCurrentStudy,
+  updateFlowData,
+  exportData,
+  importData,
+  clearError
+} = useStudyManager()
+
 // 处理项目打开事件
-const handleOpenProject = (project: any) => {
+const handleOpenProject = async (project: any) => {
   currentProject.value = project
   activeTab.value = 'interactive'
+
+  // 尝试从 IndexedDB 加载对应的 study 数据
+  try {
+    const study = await loadStudy(project.studyId)
+    if (!study) {
+      // 如果没有对应的 study，创建一个新的
+      await createNewStudy(project.studyName, `Study for ${project.studyId}`)
+    }
+  } catch (err) {
+    console.error('Failed to load study:', err)
+  }
 
   // 更新URL，使用Study ID作为路径
   const basePath = window.location.pathname
@@ -37,6 +68,7 @@ const handleOpenProject = (project: any) => {
 const backToProjects = () => {
   activeTab.value = 'projects'
   currentProject.value = null
+  setCurrentStudy(null)
 
   // 返回到根路径
   const basePath = window.location.pathname.split('/').slice(0, -1).join('/') || '/'
@@ -44,7 +76,7 @@ const backToProjects = () => {
 }
 
 // 从URL加载项目
-const loadFromURL = () => {
+const loadFromURL = async () => {
   const pathParts = window.location.pathname.split('/')
   const studyId = pathParts[pathParts.length - 1]
 
@@ -58,6 +90,13 @@ const loadFromURL = () => {
       if (project) {
         currentProject.value = project
         activeTab.value = 'interactive'
+
+        // 尝试加载对应的 study 数据
+        try {
+          await loadStudy(studyId)
+        } catch (err) {
+          console.error('Failed to load study from URL:', err)
+        }
       } else {
         // 如果项目不存在，返回项目列表
         backToProjects()
@@ -102,8 +141,15 @@ HotKey=0`
 }
 
 // 组件挂载时从URL加载
-onMounted(() => {
-  loadFromURL()
+onMounted(async () => {
+  // ��始化 IndexedDB
+  try {
+    await initializeDB()
+  } catch (err) {
+    console.error('Failed to initialize IndexedDB:', err)
+  }
+
+  await loadFromURL()
 
   // 监听浏览器后退/前进按钮
   window.addEventListener('popstate', loadFromURL)
@@ -148,6 +194,13 @@ onMounted(() => {
           >
             📝 原版流程图
           </button>
+          <button
+            @click="activeTab = 'sync'"
+            :class="{ active: activeTab === 'sync' }"
+            class="nav-tab"
+          >
+            ☁️ 数据同步
+          </button>
         </nav>
       </div>
 
@@ -161,6 +214,17 @@ onMounted(() => {
     </header>
 
     <main class="app-main">
+      <!-- 错误提示 -->
+      <div v-if="error" class="error-banner">
+        <span>{{ error }}</span>
+        <button @click="clearError" class="error-close">×</button>
+      </div>
+
+      <!-- 加载指示器 -->
+      <div v-if="loading" class="loading-banner">
+        <span>正在加载...</span>
+      </div>
+
       <ProjectManager
         v-if="activeTab === 'projects'"
         @openProject="handleOpenProject"
@@ -169,6 +233,8 @@ onMounted(() => {
       <InteractiveFlowChart
         v-else-if="activeTab === 'interactive'"
         :project="currentProject"
+        :currentStudy="currentStudy"
+        @updateFlowData="updateFlowData"
       />
       <EmbeddableFlowChart
         v-else-if="activeTab === 'embed'"
@@ -179,6 +245,7 @@ onMounted(() => {
         height="600px"
       />
       <TodoFlowChart v-else-if="activeTab === 'todo'" />
+      <DataSyncPanel v-else-if="activeTab === 'sync'" />
     </main>
   </div>
 </template>
@@ -293,5 +360,41 @@ onMounted(() => {
   font-weight: 500;
   color: #111827;
   font-size: 0.9rem;
+}
+
+/* 错误提示样式 */
+.error-banner {
+  background: #fee2e2;
+  color: #b91c1c;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #fca5a5;
+  border-radius: 4px;
+  margin: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.error-close {
+  background: none;
+  border: none;
+  color: #b91c1c;
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0 0.5rem;
+}
+
+/* 加载指示器样式 */
+.loading-banner {
+  background: #e0f7fa;
+  color: #00796b;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #b2ebf2;
+  border-radius: 4px;
+  margin: 1rem 1.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>
