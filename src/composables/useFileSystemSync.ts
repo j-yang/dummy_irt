@@ -65,12 +65,31 @@ class FileSystemDataSync {
     }
 
     try {
-      // 尝试请求权限
-      const permission = await this.targetDirectory.requestPermission({ mode: 'readwrite' })
-      return permission === 'granted'
+      // 尝试访问目录来验证权限
+      // 如果我们能够读取目录，说明有权限
+      for await (const [name, handle] of (this.targetDirectory as any).entries()) {
+        // 只需要检查第一个条目就够了
+        break
+      }
+      return true
     } catch (err) {
       console.warn('Directory access verification failed:', err)
-      return false
+      // 如果访问失败，尝试重新获取权限
+      try {
+        // 通过查询权限状态来检查
+        const permission = await (this.targetDirectory as any).queryPermission({ mode: 'readwrite' })
+        if (permission === 'granted') {
+          return true
+        } else if (permission === 'prompt') {
+          // 如果需要提示用户，尝试请求权限
+          const newPermission = await (this.targetDirectory as any).requestPermission({ mode: 'readwrite' })
+          return newPermission === 'granted'
+        }
+        return false
+      } catch (permissionErr) {
+        console.warn('Permission check failed:', permissionErr)
+        return false
+      }
     }
   }
 
