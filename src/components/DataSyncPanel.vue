@@ -19,9 +19,17 @@
         </div>
         <div v-else class="folder-selected">
           <p>✅ Selected folder: <strong>{{ targetDirectoryName }}</strong></p>
-          <button @click="selectFolder" class="change-folder-btn">
-            Change Folder
-          </button>
+          <div class="folder-actions">
+            <button @click="selectFolder" class="change-folder-btn">
+              Change Folder
+            </button>
+            <button @click="verifyAccess" class="verify-access-btn">
+              Verify Access
+            </button>
+          </div>
+          <p v-if="savedDirectoryInfo" class="folder-note">
+            📝 Folder selection is remembered across sessions
+          </p>
         </div>
       </div>
 
@@ -64,7 +72,6 @@
               <div class="file-actions">
                 <button @click="previewBackup(file.name)" class="preview-btn">Preview</button>
                 <button @click="importBackup(file.name, 'merge')" class="merge-btn">Merge Import</button>
-                <button @click="importBackup(file.name, 'replace')" class="replace-btn">Replace Import</button>
               </div>
             </div>
           </div>
@@ -198,6 +205,9 @@ const backupFiles = ref<File[]>([])
 const previewData = ref<any>(null)
 const username = ref('')
 
+// Check if directory info is saved
+const savedDirectoryInfo = localStorage.getItem('sync_directory_info')
+
 // Load saved username
 onMounted(() => {
   const savedUsername = localStorage.getItem('sync_username')
@@ -208,6 +218,23 @@ onMounted(() => {
 
 const selectFolder = async () => {
   await selectSyncFolder()
+}
+
+// Verify directory access
+const verifyAccess = async () => {
+  try {
+    const hasAccess = await fileSystemSync.verifyDirectoryAccess()
+    if (hasAccess) {
+      // Update UI to show access is verified
+      console.log('Directory access verified')
+    } else {
+      // Prompt user to reselect folder
+      await selectFolder()
+    }
+  } catch (err) {
+    console.error('Failed to verify access:', err)
+    await selectFolder()
+  }
 }
 
 const toggleAutoSync = async () => {
@@ -252,15 +279,27 @@ const previewBackup = async (filename: string) => {
 }
 
 // Import backup file
-const importBackup = async (filename: string, mode: 'merge' | 'replace') => {
+const importBackup = async (filename: string, mode: 'merge') => {
   try {
+    syncStatus.value = 'syncing'
+    error.value = null
+
     const success = await fileSystemSync.importAllData(filename, mode)
     if (success) {
+      syncStatus.value = 'success'
       console.log(`Successfully imported ${filename} in ${mode} mode`)
-      // Refresh page to display new data
-      window.location.reload()
+      // Show success message before reload
+      setTimeout(() => {
+        // Refresh page to display new data
+        window.location.reload()
+      }, 1500)
+    } else {
+      syncStatus.value = 'error'
+      error.value = `Failed to import ${filename}`
     }
   } catch (err) {
+    syncStatus.value = 'error'
+    error.value = `Error importing backup: ${(err as Error).message}`
     console.error('Failed to import backup:', err)
   }
 }
@@ -291,6 +330,8 @@ const formatFileSize = (bytes: number) => {
 
 <style scoped>
 .data-sync-panel {
+  height: 100%;
+  overflow-y: auto;
   max-width: 600px;
   margin: 0 auto;
   padding: 1.5rem;
@@ -372,6 +413,34 @@ const formatFileSize = (bytes: number) => {
 
 .folder-selected strong {
   color: #059669;
+}
+
+.folder-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.verify-access-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background-color 0.2s;
+}
+
+.verify-access-btn:hover {
+  background: #059669;
+}
+
+.folder-note {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0.5rem 0 0 0;
+  font-style: italic;
 }
 
 .last-sync {
@@ -563,8 +632,7 @@ const formatFileSize = (bytes: number) => {
 
 .list-backups-btn,
 .preview-btn,
-.merge-btn,
-.replace-btn {
+.merge-btn {
   background: #3b82f6;
   color: white;
   border: none;
@@ -586,14 +654,6 @@ const formatFileSize = (bytes: number) => {
 
 .merge-btn:hover {
   background: #047857;
-}
-
-.replace-btn {
-  background: #dc2626;
-}
-
-.replace-btn:hover {
-  background: #b91c1c;
 }
 
 .list-backups-btn {

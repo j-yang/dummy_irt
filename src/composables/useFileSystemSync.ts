@@ -1,16 +1,32 @@
 import { dbManager } from '@/db/indexedDb'
-import { ref, reactive } from 'vue'
-
-export interface FileSystemSyncOptions {
-  autoSync: boolean
-  syncInterval: number // 分钟
-  targetDirectory?: FileSystemDirectoryHandle
-}
+import { ref } from 'vue'
 
 class FileSystemDataSync {
   private syncInterval: number | null = null
   private targetDirectory: FileSystemDirectoryHandle | null = null
   private autoSync = false
+
+  constructor() {
+    // Try to restore directory handle on initialization
+    this.restoreDirectoryHandle()
+  }
+
+  // 尝试恢复之前选择的目录
+  private async restoreDirectoryHandle(): Promise<void> {
+    try {
+      const directoryInfo = localStorage.getItem('sync_directory_info')
+      if (directoryInfo && 'showDirectoryPicker' in window) {
+        const info = JSON.parse(directoryInfo)
+        console.log('Attempting to restore directory:', info.name)
+
+        // Note: We can't directly restore the handle, but we store the info
+        // The user will need to reselect if the handle is lost
+        // In a future browser update, we might be able to use the Origin Private File System API
+      }
+    } catch (err) {
+      console.warn('Failed to restore directory handle:', err)
+    }
+  }
 
   // 选择目标文件夹
   async selectTargetDirectory(): Promise<boolean> {
@@ -20,7 +36,17 @@ class FileSystemDataSync {
         this.targetDirectory = await (window as any).showDirectoryPicker({
           mode: 'readwrite'
         })
-        console.log('Target directory selected:', this.targetDirectory?.name)
+
+        // 保存目录信息到 localStorage
+        if (this.targetDirectory) {
+          const directoryInfo = {
+            name: this.targetDirectory.name,
+            timestamp: new Date().toISOString()
+          }
+          localStorage.setItem('sync_directory_info', JSON.stringify(directoryInfo))
+          console.log('Target directory selected and saved:', this.targetDirectory?.name)
+        }
+
         return true
       } else {
         console.warn('File System Access API not supported')
@@ -28,6 +54,22 @@ class FileSystemDataSync {
       }
     } catch (err) {
       console.error('Failed to select directory:', err)
+      return false
+    }
+  }
+
+  // 检查目录权限并尝试重新获取访问权限
+  async verifyDirectoryAccess(): Promise<boolean> {
+    if (!this.targetDirectory) {
+      return false
+    }
+
+    try {
+      // 尝试请求权限
+      const permission = await this.targetDirectory.requestPermission({ mode: 'readwrite' })
+      return permission === 'granted'
+    } catch (err) {
+      console.warn('Directory access verification failed:', err)
       return false
     }
   }
@@ -82,7 +124,7 @@ class FileSystemDataSync {
       // 获取 IndexedDB 中的所有数据
       const dbData = await dbManager.exportAllData()
 
-      // 获取 localStorage 中的项目数据
+      // ���取 localStorage 中的项目数据
       const projectsData = localStorage.getItem('projectManager_projects')
       const projects = projectsData ? JSON.parse(projectsData) : []
 
@@ -143,66 +185,101 @@ class FileSystemDataSync {
 
   // 智能合并数据
   private async mergeData(importData: any): Promise<void> {
-    // 获取当前数据
-    const currentProjects = JSON.parse(localStorage.getItem('projectManager_projects') || '[]')
-    const currentDbData = await dbManager.exportAllData()
+    try {
+      console.log('Starting merge operation...', importData);
 
-    // 合并项目数据
-    const mergedProjects = [...currentProjects]
-    if (importData.projects) {
-      for (const importProject of importData.projects) {
-        // 检查是否已存在相同的 studyId
-        const existingIndex = mergedProjects.findIndex(p => p.studyId === importProject.studyId)
-        if (existingIndex >= 0) {
-          // 如果导入的项目更新时间更晚，则替换
-          const existingProject = mergedProjects[existingIndex]
-          const importTime = new Date(importProject.createdAt || 0)
-          const existingTime = new Date(existingProject.createdAt || 0)
+      // 获取当前数据
+      const currentProjects = JSON.parse(localStorage.getItem('projectManager_projects') || '[]')
+      const currentDbData = await dbManager.exportAllData()
 
-          if (importTime > existingTime) {
-            mergedProjects[existingIndex] = {
+      console.log('Current projects:', currentProjects.length);
+      console.log('Current studies:', currentDbData.studies.length);
+      console.log('Import projects:', importData.projects?.length || 0);
+      console.log('Import studies:', importData.studies?.length || 0);
+
+      // 合并项目数据
+      const mergedProjects = [...currentProjects]
+      if (importData.projects && Array.isArray(importData.projects)) {
+        for (const importProject of importData.projects) {
+          // 检查是否已存在相同的 studyId
+          const existingIndex = mergedProjects.findIndex(p => p.studyId === importProject.studyId)
+          if (existingIndex >= 0) {
+            // 如果导入的项目更新时间更晚，则替换
+            const existingProject = mergedProjects[existingIndex]
+            const importTime = new Date(importProject.createdAt || 0)
+            const existingTime = new Date(existingProject.createdAt || 0)
+
+            if (importTime > existingTime) {
+              console.log(`Updating existing project: ${importProject.studyId}`);
+              mergedProjects[existingIndex] = {
+                ...importProject,
+                id: existingProject.id, // 保持原有的内部ID
+                mergedFrom: importData.userInfo?.username || 'Unknown User'
+              }
+            }
+          } else {
+            // 新项目，直接添加
+            console.log(`Adding new project: ${importProject.studyId}`);
+            mergedProjects.push({
               ...importProject,
-              id: existingProject.id, // 保持原有的内部ID
               mergedFrom: importData.userInfo?.username || 'Unknown User'
+            })
+          }
+        }
+      }
+
+      // 合并 Studies 数据
+      const mergedStudies = [...currentDbData.studies]
+      if (importData.studies && Array.isArray(importData.studies)) {
+        for (const importStudy of importData.studies) {
+          const existingIndex = mergedStudies.findIndex(s => s.id === importStudy.id)
+          if (existingIndex >= 0) {
+            // 比较更新时间
+            const importTime = new Date(importStudy.updatedAt || importStudy.createdAt || 0)
+            const existingTime = new Date(mergedStudies[existingIndex].updatedAt || mergedStudies[existingIndex].createdAt || 0)
+
+            if (importTime > existingTime) {
+              console.log(`Updating existing study: ${importStudy.id}`);
+              mergedStudies[existingIndex] = importStudy
+            }
+          } else {
+            console.log(`Adding new study: ${importStudy.id}`);
+            mergedStudies.push(importStudy)
+          }
+        }
+      }
+
+      // 保存合并后的数据
+      console.log('Saving merged projects:', mergedProjects.length);
+      localStorage.setItem('projectManager_projects', JSON.stringify(mergedProjects))
+
+      // 保存合并后的研究数据和设置
+      if (mergedStudies.length > 0 || (importData.settings && importData.settings.length > 0)) {
+        console.log('Saving merged studies and settings...');
+        const mergedSettings = [...currentDbData.settings]
+
+        // 合并设置（如果有的话）
+        if (importData.settings && Array.isArray(importData.settings)) {
+          for (const importSetting of importData.settings) {
+            const existingIndex = mergedSettings.findIndex(s => s.key === importSetting.key)
+            if (existingIndex >= 0) {
+              mergedSettings[existingIndex] = importSetting
+            } else {
+              mergedSettings.push(importSetting)
             }
           }
-        } else {
-          // 新项目，直接添加
-          mergedProjects.push({
-            ...importProject,
-            mergedFrom: importData.userInfo?.username || 'Unknown User'
-          })
         }
+
+        await dbManager.importData({
+          studies: mergedStudies,
+          settings: mergedSettings
+        })
       }
-    }
 
-    // 合并 Studies 数据
-    const mergedStudies = [...currentDbData.studies]
-    if (importData.studies) {
-      for (const importStudy of importData.studies) {
-        const existingIndex = mergedStudies.findIndex(s => s.id === importStudy.id)
-        if (existingIndex >= 0) {
-          // 比较更新时间
-          const importTime = new Date(importStudy.updatedAt || 0)
-          const existingTime = new Date(mergedStudies[existingIndex].updatedAt || 0)
-
-          if (importTime > existingTime) {
-            mergedStudies[existingIndex] = importStudy
-          }
-        } else {
-          mergedStudies.push(importStudy)
-        }
-      }
-    }
-
-    // 保存合并后的数据
-    localStorage.setItem('projectManager_projects', JSON.stringify(mergedProjects))
-
-    if (importData.studies || importData.settings) {
-      await dbManager.importData({
-        studies: mergedStudies,
-        settings: [...currentDbData.settings, ...(importData.settings || [])]
-      })
+      console.log('Merge operation completed successfully');
+    } catch (error) {
+      console.error('Error during merge operation:', error);
+      throw error;
     }
   }
 
@@ -297,8 +374,13 @@ export const fileSystemSync = new FileSystemDataSync()
 
 export function useFileSystemSync() {
   const isSupported = ref('showDirectoryPicker' in window)
-  const hasTargetDirectory = ref(fileSystemSync.hasTargetDirectory())
-  const targetDirectoryName = ref(fileSystemSync.getTargetDirectoryName())
+
+  // Check for saved directory info on initialization
+  const savedDirectoryInfo = localStorage.getItem('sync_directory_info')
+  const hasTargetDirectory = ref(fileSystemSync.hasTargetDirectory() || !!savedDirectoryInfo)
+  const targetDirectoryName = ref(fileSystemSync.getTargetDirectoryName() ||
+    (savedDirectoryInfo ? JSON.parse(savedDirectoryInfo).name : null))
+
   const autoSyncEnabled = ref(false)
   const syncStatus = ref<'idle' | 'syncing' | 'success' | 'error'>('idle')
   const lastSyncTime = ref<Date | null>(null)
@@ -318,6 +400,23 @@ export function useFileSystemSync() {
       return success
     } catch (err) {
       error.value = '选择文件夹时出错: ' + (err as Error).message
+      return false
+    }
+  }
+
+  // 验证目录访问权限
+  const verifyDirectoryAccess = async () => {
+    try {
+      const hasAccess = await fileSystemSync.verifyDirectoryAccess()
+      if (!hasAccess && savedDirectoryInfo) {
+        // 如果没有访问权限但有保存的目录信息，提示用户重新选择
+        error.value = '需要重新选择同步文��夹以获取访问权限'
+        hasTargetDirectory.value = false
+        targetDirectoryName.value = null
+      }
+      return hasAccess
+    } catch (err) {
+      console.warn('Directory access verification failed:', err)
       return false
     }
   }
@@ -344,7 +443,7 @@ export function useFileSystemSync() {
     }
   }
 
-  // 导入数据
+  // ���入数据
   const importData = async (filename: string) => {
     try {
       syncStatus.value = 'syncing'
@@ -384,7 +483,7 @@ export function useFileSystemSync() {
     autoSyncEnabled.value = false
   }
 
-  // 清除错误
+  // ���除错误
   const clearError = () => {
     error.value = null
     syncStatus.value = 'idle'
