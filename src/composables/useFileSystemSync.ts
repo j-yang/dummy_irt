@@ -273,25 +273,22 @@ class FileSystemDataSync {
       localStorage.setItem('projectManager_projects', JSON.stringify(mergedProjects))
 
       // 保存合并后的研究数据和设置
-      if (mergedStudies.length > 0 || (importData.settings && importData.settings.length > 0)) {
+      if (mergedStudies.length > 0 || (importData.settings && Object.keys(importData.settings).length > 0)) {
         console.log('Saving merged studies and settings...');
-        const mergedSettings = [...currentDbData.settings]
 
-        // 合并设置（如果有的话）
-        if (importData.settings && Array.isArray(importData.settings)) {
-          for (const importSetting of importData.settings) {
-            const existingIndex = mergedSettings.findIndex(s => s.key === importSetting.key)
-            if (existingIndex >= 0) {
-              mergedSettings[existingIndex] = importSetting
-            } else {
-              mergedSettings.push(importSetting)
-            }
-          }
+        // 合并设置数据 - 确保正确处理对象类型
+        const currentSettings = currentDbData.settings || {}
+        const mergedSettingsObj = { ...currentSettings }
+
+        // 合并文件系统中的设置
+        if (importData.settings && typeof importData.settings === 'object') {
+          Object.assign(mergedSettingsObj, importData.settings)
         }
 
-        await dbManager.importData({
+        // 导入合并后的数据
+        await dbManager.importAllData({
           studies: mergedStudies,
-          settings: mergedSettings
+          settings: mergedSettingsObj
         })
       }
 
@@ -306,7 +303,7 @@ class FileSystemDataSync {
   private async replaceData(importData: any): Promise<void> {
     // 恢复到 IndexedDB
     if (importData.studies && importData.settings) {
-      await dbManager.importData({
+      await dbManager.importAllData({
         studies: importData.studies,
         settings: importData.settings
       })
@@ -414,7 +411,7 @@ export function useFileSystemSync() {
         targetDirectoryName.value = fileSystemSync.getTargetDirectoryName()
         error.value = null
       } else {
-        error.value = '选择文件夹失败或用户取消'
+        error.value = '选��文��夹失败或用户取消'
       }
       return success
     } catch (err) {
@@ -509,7 +506,7 @@ export function useFileSystemSync() {
   }
 
   return {
-    // 状态
+    // 状���
     isSupported,
     hasTargetDirectory,
     targetDirectoryName,

@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
+import { useStudyManager } from '@/composables/useStudyManager'
 
 interface Project {
   id: string
-  studyId: string  // Study ID - 用户输入的实际研究ID
+  studyId: string  // Study ID - User-entered actual study ID
   studyName: string  // Study Name
-  therapeuticArea: string  // TA (治疗领域) - 下拉选择
-  irtVendor: string  // IRT Vendor - 下拉选择
-  vendorDataSource: string  // Vendor Dummy Data Source - 下拉选择
+  therapeuticArea: string  // TA (Therapeutic Area) - Dropdown selection
+  irtVendor: string  // IRT Vendor - Dropdown selection
+  vendorDataSource: string  // Vendor Dummy Data Source - Dropdown selection
   leadProgrammer: string  // Lead Programmer
   nextMilestone: string  // Next Milestone
-  status: 'ongoing' | 'closed'  // 状态
+  status: 'ongoing' | 'closed'  // Status
   createdAt: string
 }
 
@@ -22,7 +23,7 @@ const stats = reactive({
   completed: 0
 })
 
-// 筛选器状态
+// Filter state
 const filters = reactive({
   therapeuticArea: '',
   irtVendor: '',
@@ -30,7 +31,7 @@ const filters = reactive({
   searchText: ''
 })
 
-// 计算属性：筛选后的项目
+// Computed property: filtered projects
 const filteredProjects = computed(() => {
   return projects.value.filter(project => {
     const matchesTA = !filters.therapeuticArea || project.therapeuticArea === filters.therapeuticArea
@@ -44,7 +45,7 @@ const filteredProjects = computed(() => {
   })
 })
 
-// 重置筛选器
+// Reset filters
 const resetFilters = () => {
   filters.therapeuticArea = ''
   filters.irtVendor = ''
@@ -52,7 +53,7 @@ const resetFilters = () => {
   filters.searchText = ''
 }
 
-// 获取筛选器选项
+// Get filter options
 const getFilterOptions = (field: keyof Project) => {
   return [...new Set(projects.value.map(p => p[field] as string))].filter(Boolean).sort()
 }
@@ -68,7 +69,7 @@ const newProject = reactive({
   status: 'ongoing'
 })
 
-// 编辑项目相关状态
+// Edit project related state
 const editingProject = ref<string | null>(null)
 const editForm = reactive<{
   studyId: string
@@ -90,7 +91,7 @@ const editForm = reactive<{
   status: 'ongoing'
 })
 
-// 下拉选项数据
+// Dropdown options data
 const therapeuticAreas = [
   'Oncology',
   'Cardiovascular',
@@ -119,12 +120,12 @@ const vendorDataSources = [
   'Development Environment'
 ]
 
-// 生成唯一ID（用于系统内部）
+// Generate unique ID (for internal system use)
 const generateId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2)
 }
 
-// 创建新项目
+// Create new project
 const createProject = () => {
   if (!newProject.studyId.trim()) {
     alert('Please enter Study ID')
@@ -167,30 +168,30 @@ const createProject = () => {
   showCreateForm.value = false
 }
 
-// 删除项目
+// Delete project
 const deleteProject = (projectId: string) => {
   if (confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
     projects.value = projects.value.filter(p => p.id !== projectId)
     saveProjects()
     updateStats()
 
-    // 清理项目相关的本地存储
+    // Clean up project-related local storage
     localStorage.removeItem(`todoFlow_project_${projectId}`)
   }
 }
 
-// 打开项目 - 导航到流程图页面
+// Open project - Navigate to flow chart page
 const openProject = (projectId: string) => {
   const project = projects.value.find(p => p.id === projectId)
   if (project) {
-    // 将项目信息存储到localStorage，供流程图页面使用
+    // Store project information to localStorage for flow chart page use
     localStorage.setItem('currentProject', JSON.stringify(project))
-    // 触发父组件切换到流程图页面
+    // Trigger parent component to switch to flow chart page
     emit('openProject', project)
   }
 }
 
-// 下载项目文件
+// Download project file
 const downloadProject = (projectId: string) => {
   const project = projects.value.find(p => p.id === projectId)
   if (project) {
@@ -198,25 +199,25 @@ const downloadProject = (projectId: string) => {
   }
 }
 
-// 创建项目专用的HTML文件
+// Create project dedicated HTML file
 const createProjectFile = (project: Project) => {
   const projectHtml = generateProjectHTML(project)
   const blob = new Blob([projectHtml], { type: 'text/html' })
 
-  // 创建临时URL和下载链接
+  // Create temporary URL and download link
   let downloadUrl = URL.createObjectURL(blob)
   let downloadLink = document.createElement('a')
   downloadLink.href = downloadUrl
   downloadLink.download = `project_${project.id}_${project.studyId.replace(/[^a-zA-Z0-9]/g, '_')}.html`
 
-  // 触发下载
+  // Trigger download
   downloadLink.click()
 
-  // 释放URL资源
+  // Release URL resources
   URL.revokeObjectURL(downloadUrl)
 }
 
-// 生成项目HTML模板
+// Generate project HTML template
 const generateProjectHTML = (project: Project) => {
   const htmlContent = `<!DOCTYPE html>
 <html lang="zh">
@@ -263,14 +264,14 @@ const generateProjectHTML = (project: Project) => {
   return htmlContent
 }
 
-// 更新统计信息
+// Update statistics
 const updateStats = () => {
   stats.total = projects.value.length
   stats.active = projects.value.filter(p => p.status === 'ongoing').length
   stats.completed = projects.value.filter(p => p.status === 'closed').length
 }
 
-// 创建示例项目数据
+// Create sample project data
 const createSampleProjects = () => {
   const sampleProjects: Project[] = [
     {
@@ -374,30 +375,77 @@ const createSampleProjects = () => {
   return sampleProjects
 }
 
-// 加载项目数据
+// Save projects to localStorage (compatible with original system)
+const saveProjects = () => {
+  localStorage.setItem('projects', JSON.stringify(projects.value))
+}
+
+// Load projects from localStorage
 const loadProjects = () => {
-  const saved = localStorage.getItem('projectManager_projects')
+  const saved = localStorage.getItem('projects')
   if (saved) {
-    projects.value = JSON.parse(saved)
+    try {
+      projects.value = JSON.parse(saved)
+      updateStats()
+    } catch (error) {
+      console.error('Failed to load projects:', error)
+      projects.value = []
+    }
   } else {
-    // 如果没有保存的数据，创建示例项目
+    // If no saved data found, create sample projects
     projects.value = createSampleProjects()
     saveProjects()
   }
 }
 
-// 保存项目数据
-const saveProjects = () => {
-  localStorage.setItem('projectManager_projects', JSON.stringify(projects.value))
+// Export project data to JSON file
+const exportProjects = async () => {
+  try {
+    await exportToJSON()
+    alert('Project data exported successfully!')
+  } catch (error) {
+    console.error('Export failed:', error)
+    alert('Export failed: ' + (error as Error).message)
+  }
 }
 
-// 定义事件
+// Import project data from JSON file
+const importProjects = async () => {
+  try {
+    const file = await triggerImport()
+    if (file) {
+      const result = await importFromJSON(file)
+      loadProjects() // Reload project list
+      alert(`Successfully imported ${result.studies?.length || 0} projects!`)
+    }
+  } catch (error) {
+    console.error('Import failed:', error)
+    alert('Import failed: ' + (error as Error).message)
+  }
+}
+
+// Clear all project data
+const clearAllProjects = async () => {
+  if (confirm('Are you sure you want to clear all project data? This action cannot be undone!')) {
+    try {
+      await clearAllData()
+      projects.value = []
+      updateStats()
+      alert('All project data has been cleared!')
+    } catch (error) {
+      console.error('Clear data failed:', error)
+      alert('Clear data failed: ' + (error as Error).message)
+    }
+  }
+}
+
+// Define events
 const emit = defineEmits<{
   openProject: [project: Project]
   copyProjectLink: [project: Project]
 }>()
 
-// 重置表单
+// Reset form
 const resetForm = () => {
   newProject.studyId = ''
   newProject.studyName = ''
@@ -409,7 +457,7 @@ const resetForm = () => {
   newProject.status = 'ongoing'
 }
 
-// 重置编辑表单
+// Reset edit form
 const resetEditForm = () => {
   editForm.studyId = ''
   editForm.studyName = ''
@@ -421,18 +469,18 @@ const resetEditForm = () => {
   editForm.status = 'ongoing'
 }
 
-// 复制项目链接
+// Copy project link
 const copyProjectLink = (project: Project) => {
   emit('copyProjectLink', project)
 }
 
-// 组件挂载时加载数据
+// Load data when component is mounted
 onMounted(() => {
   loadProjects()
   updateStats()
 })
 
-// 新增辅助方法
+// New auxiliary methods
 const getStatusText = (status: string) => {
   switch (status) {
     case 'active': return 'Active'
@@ -443,7 +491,7 @@ const getStatusText = (status: string) => {
 }
 
 const getRandCount = (project: Project) => {
-  // 这里可以从项目数据中获取RAND数量，暂时返回随机数
+  // 这里��以从项目数据中获取RAND数量，暂时返回随机数
   return Math.floor(Math.random() * 50) + 10
 }
 
@@ -460,7 +508,7 @@ const formatDate = (dateString: string) => {
   })
 }
 
-// ��辑项目
+// 编辑项目
 const startEditProject = (project: Project) => {
   editingProject.value = project.id
   editForm.studyId = project.studyId
@@ -475,7 +523,7 @@ const startEditProject = (project: Project) => {
 
 // 保存编辑的项目
 const saveEditProject = () => {
-  // 添加表单验证，并确保字���不为undefined
+  // 添加表单验证，并确保字段不为undefined
   const studyId = editForm.studyId || ''
   const studyName = editForm.studyName || ''
   const leadProgrammer = editForm.leadProgrammer || ''
@@ -530,6 +578,16 @@ const cancelEdit = () => {
   editingProject.value = null
   resetEditForm()
 }
+
+// 使用 Study Manager
+const {
+  exportToJSON,
+  importFromJSON,
+  triggerImport,
+  clearAllData,
+  loading: studyLoading,
+  error: studyError
+} = useStudyManager()
 </script>
 
 <template>
@@ -548,6 +606,23 @@ const cancelEdit = () => {
       >
         {{ showCreateForm ? 'Cancel Creation' : '+ Create New Study' }}
       </button>
+
+      <!-- 数据管理按钮 -->
+      <div class="data-management">
+        <h3>Data Management</h3>
+        <div class="data-actions">
+          <button @click="exportProjects" class="btn btn-info btn-small" :disabled="studyLoading">
+            Export Data
+          </button>
+          <button @click="importProjects" class="btn btn-info btn-small" :disabled="studyLoading">
+            Import Data
+          </button>
+          <button @click="clearAllProjects" class="btn btn-danger btn-small">
+            Clear Data
+          </button>
+        </div>
+        <p class="data-hint">Support JSON format data backup and recovery</p>
+      </div>
 
       <!-- 筛选器区域 -->
       <div class="filter-section">
@@ -1128,7 +1203,7 @@ const cancelEdit = () => {
   gap: 20px;
 }
 
-/* 新增试验卡片样式 */
+/* ���增试验卡片样式 */
 .info-panel {
   background: #f0f9ff;
   border: 1px solid #bae6fd;
@@ -1414,5 +1489,60 @@ const cancelEdit = () => {
   display: flex;
   gap: 10px;
   margin-top: 10px;
+}
+
+/* 数据管理样式 */
+.data-management {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  border: 1px solid #e5e7eb;
+}
+
+.data-management h3 {
+  color: #374151;
+  margin-bottom: 15px;
+  font-size: 1.1em;
+  font-weight: 500;
+}
+
+.data-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.data-hint {
+  color: #6b7280;
+  font-size: 0.8em;
+  margin: 0;
+  font-style: italic;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.ongoing {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge.closed {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
 }
 </style>

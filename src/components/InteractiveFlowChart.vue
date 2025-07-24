@@ -20,7 +20,7 @@
         :elevate-edges-on-select="true"
         :pan-on-scroll="true"
         :zoom-on-scroll="false"
-        :pan-on-drag="false"
+        :pan-on-drag="true"
         :node-dimensions-change="true"
         class="vue-flow-container"
         @node-click="onNodeClick"
@@ -31,29 +31,6 @@
         <Background pattern="dots" :gap="24" :size="1" />
         <Controls :show-zoom="false" :show-fit-view="true" />
         <MiniMap />
-
-        <Panel position="top-right" class="path-controls">
-          <div class="path-selector">
-            <button
-              class="path-btn"
-              :class="{ active: activeVendor === 'sh' }"
-              @click="highlightPath('sh')">
-              SH Path
-            </button>
-            <button
-              class="path-btn"
-              :class="{ active: activeVendor === 'ca' }"
-              @click="highlightPath('ca')">
-              CA Path
-            </button>
-            <button
-              class="path-btn"
-              :class="{ active: activeVendor === 'all' }"
-              @click="highlightPath('all')">
-              Show All
-            </button>
-          </div>
-        </Panel>
 
         <template #node-step="nodeProps">
           <div
@@ -75,7 +52,7 @@
               <div class="step-status">
                 <div v-if="nodeProps.data.completed" class="icon-check">✓</div>
                 <div v-else-if="nodeProps.data.inProgress" class="icon-progress">⏳</div>
-                <div v-else class="icon-pending">⏸</div>
+                <div v-else class="icon-pending"> </div>
               </div>
               <!-- Completion status checkbox -->
               <div class="completion-checkbox" @click.stop="toggleNodeCompletion(nodeProps.data)">
@@ -198,6 +175,29 @@
                 </div>
               </div>
 
+              <!-- SAS Macro Downloads Section -->
+              <div v-if="selectedStep.hasAttachments && getSASMacros(selectedStep).length > 0" class="sas-macros-section">
+                <strong>SAS Macros:</strong>
+                <div class="macro-downloads">
+                  <div
+                    v-for="macro in getSASMacros(selectedStep)"
+                    :key="macro.name"
+                    class="macro-item"
+                  >
+                    <div class="macro-info">
+                      <span class="macro-name">{{ macro.name }}</span>
+                      <span class="macro-type">{{ macro.type }}</span>
+                    </div>
+                    <button
+                      @click="downloadSASMacro(macro)"
+                      class="btn btn-download"
+                    >
+                      Download
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div v-if="selectedStep.hasUpload" class="upload-section">
                 <strong>File Upload:</strong>
                 <div class="upload-area">
@@ -220,7 +220,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { VueFlow, useVueFlow, BaseEdge, Panel } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
@@ -656,7 +656,7 @@ const handleFileUpload = async (stepId: string, file: File, uploadToSftp: boolea
 }
 
 const uploadToSftpServer = async (file: File, stepId: string) => {
-  // 在实际应用中，这里应该调用后端API来处理SFTP上传
+  // 在实际应用中，这里应���调用后端API来处理SFTP上传
   // 因为浏览器环境无法直接连接SFTP服务器
   const formData = new FormData()
   formData.append('file', file)
@@ -729,7 +729,88 @@ const highlightPath = (vendor: 'sh' | 'ca' | 'all') => {
   }
 }
 
-// Add missing methods for node interactions and path controls
+// Edge style management
+const getEdgeStyle = (edge: any) => {
+  const baseStyle = { ...edge.style }
+
+  if (isDimmedEdge(edge)) {
+    return {
+      ...baseStyle,
+      stroke: baseStyle.stroke + '80', // Add transparency
+      strokeWidth: 1,
+      opacity: 0.6
+    }
+  }
+
+  if (isHighlightedEdge(edge)) {
+    return {
+      ...baseStyle,
+      strokeWidth: 3,
+      filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))'
+    }
+  }
+
+  return baseStyle
+}
+
+// Toggle step status (completed/not completed)
+const toggleStepStatus = () => {
+  if (selectedStep.value) {
+    const step = { ...selectedStep.value }
+    step.completed = !step.completed
+
+    // If marking as complete, ensure it's not in progress
+    if (step.completed) {
+      step.inProgress = false
+    }
+
+    updateStep(step)
+    selectedStep.value = step
+  }
+}
+
+// 新增：直接在节点上切换完成状态的��法
+const toggleNodeCompletion = (stepData: StepData) => {
+  const nodeIndex = nodes.value.findIndex(n => n.data.id === stepData.id)
+  if (nodeIndex !== -1) {
+    const updatedData = { ...stepData }
+    updatedData.completed = !updatedData.completed
+
+    // 如果标记为完成，则确保不是进行中状态
+    if (updatedData.completed) {
+      updatedData.inProgress = false
+    }
+
+    // 更新节点数���
+    nodes.value[nodeIndex].data = updatedData
+
+    // 如果当前打开的模态框是同一个�����骤，也更新模态框中的数据
+    if (selectedStep.value && selectedStep.value.id === stepData.id) {
+      selectedStep.value = updatedData
+    }
+  }
+}
+
+// Handle new connections if users create them
+const onConnect = (params: any) => {
+  // This would be used if you want to allow users to create new connections
+  console.log('Connection created:', params)
+
+  // In this case we'll just log it, but you could add it to the edges array
+  // edges.value.push({
+  //   id: `e-${params.source}-${params.target}`,
+  //   source: params.source,
+  //   target: params.target,
+  //   animated: true,
+  //   type: 'smoothstep'
+  // })
+}
+
+// Handle clicks on the pane (background)
+const onPaneClick = () => {
+  // Deselect any selected items when clicking on the background
+  hoveredNodeId.value = null
+}
 
 // File upload functionality
 const onFileSelected = (event: Event) => {
@@ -851,107 +932,174 @@ const onVendorChange = () => {
   })
 }
 
-// Edge style management
-const getEdgeStyle = (edge: any) => {
-  const baseStyle = { ...edge.style }
-
-  if (isDimmedEdge(edge)) {
-    return {
-      ...baseStyle,
-      stroke: baseStyle.stroke + '80', // Add transparency
-      strokeWidth: 1,
-      opacity: 0.6
-    }
-  }
-
-  if (isHighlightedEdge(edge)) {
-    return {
-      ...baseStyle,
-      strokeWidth: 3,
-      filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.2))'
-    }
-  }
-
-  return baseStyle
+// 更新vendor相关的视图设置
+const updateFlowForVendor = () => {
+  // 应用vendor选择后的视图更新
+  onVendorChange()
 }
 
-// Toggle step status (completed/not completed)
-const toggleStepStatus = () => {
-  if (selectedStep.value) {
-    const step = { ...selectedStep.value }
-    step.completed = !step.completed
+// 监听状态变化并自动保存
+watch([nodes, edges, selectedVendor], () => {
+  saveFlowState()
+}, { deep: true })
 
-    // If marking as complete, ensure it's not in progress
-    if (step.completed) {
-      step.inProgress = false
-    }
-
-    updateStep(step)
-    selectedStep.value = step
-  }
-}
-
-// 新增：直接在节点上切换完成状态的方法
-const toggleNodeCompletion = (stepData: StepData) => {
-  const nodeIndex = nodes.value.findIndex(n => n.data.id === stepData.id)
-  if (nodeIndex !== -1) {
-    const updatedData = { ...stepData }
-    updatedData.completed = !updatedData.completed
-
-    // 如果标记为完成，则确保不是进行中状态
-    if (updatedData.completed) {
-      updatedData.inProgress = false
-    }
-
-    // 更新节点数据
-    nodes.value[nodeIndex].data = updatedData
-
-    // 如果当前打开的模态框是同一个步骤，也更新模态框中的数据
-    if (selectedStep.value && selectedStep.value.id === stepData.id) {
-      selectedStep.value = updatedData
-    }
-  }
-}
-
-// Handle new connections if users create them
-const onConnect = (params: any) => {
-  // This would be used if you want to allow users to create new connections
-  console.log('Connection created:', params)
-
-  // In this case we'll just log it, but you could add it to the edges array
-  // edges.value.push({
-  //   id: `e-${params.source}-${params.target}`,
-  //   source: params.source,
-  //   target: params.target,
-  //   animated: true,
-  //   type: 'smoothstep'
-  // })
-}
-
-// Handle clicks on the pane (background)
-const onPaneClick = () => {
-  // Deselect any selected items when clicking on the background
-  hoveredNodeId.value = null
-}
-
-// Initialize the flow on mount
+// 在组件挂载时加载状态，在状态变化时保存
 onMounted(() => {
-  // Set nodes and edges for Vue Flow using the proper methods
-  setNodes(nodes.value)
-  setEdges(edges.value)
+  // 首先尝试从localStorage加载流程状态
+  const loaded = loadFlowState()
 
-  // Initialize with a fit view
-  setTimeout(() => {
-    fitViewAction()
-  }, 100)
+  if (loaded) {
+    console.log('Flow state loaded successfully from localStorage')
+    // 如果成功加载了状态，更新Vue Flow
+    setNodes(nodes.value)
+    setEdges(edges.value)
+
+    // 如���有选择的vendor，应用相关的视图更新
+    if (selectedVendor.value) {
+      nextTick(() => {
+        updateFlowForVendor()
+        setTimeout(() => {
+          fitViewAction()
+        }, 100)
+      })
+    }
+  } else {
+    // 如果没有保存的状态，使用默认初始化
+    console.log('No saved state found, using default flow configuration')
+    setNodes(nodes.value)
+    setEdges(edges.value)
+
+    setTimeout(() => {
+      fitViewAction()
+    }, 100)
+  }
 })
 
-// Cleanup on unmount
+// 页面卸载前保存状态
 onBeforeUnmount(() => {
+  saveFlowState()
   // Reset Vue Flow state using proper methods
   setNodes([])
   setEdges([])
 })
+
+// 添加localStorage保存功能
+const FLOW_STORAGE_KEY = 'dbl_flow_state'
+
+// 保存流程状态到localStorage
+const saveFlowState = () => {
+  const flowState = {
+    nodes: nodes.value.map(node => ({
+      ...node,
+      data: { ...node.data }
+    })),
+    edges: edges.value,
+    selectedVendor: selectedVendor.value,
+    timestamp: Date.now()
+  }
+  localStorage.setItem(FLOW_STORAGE_KEY, JSON.stringify(flowState))
+  console.log('Flow state saved to localStorage')
+}
+
+// 从localStorage加载流程状态
+const loadFlowState = () => {
+  try {
+    const saved = localStorage.getItem(FLOW_STORAGE_KEY)
+    if (saved) {
+      const flowState = JSON.parse(saved)
+      console.log('Loading flow state from localStorage:', flowState.timestamp)
+
+      // 恢复节点状态
+      if (flowState.nodes && Array.isArray(flowState.nodes)) {
+        nodes.value = flowState.nodes
+      }
+
+      // 恢复边状态
+      if (flowState.edges && Array.isArray(flowState.edges)) {
+        edges.value = flowState.edges
+      }
+
+      // 恢复选择的vendor
+      if (flowState.selectedVendor) {
+        selectedVendor.value = flowState.selectedVendor
+        updateFlowForVendor() // 应用vendor相关的视图更新
+      }
+
+      return true
+    }
+  } catch (error) {
+    console.error('Failed to load flow state from localStorage:', error)
+  }
+  return false
+}
+
+// 清除保存的状态
+const clearFlowState = () => {
+  localStorage.removeItem(FLOW_STORAGE_KEY)
+  console.log('Flow state cleared from localStorage')
+}
+
+// SAS Macro download handling
+const getSASMacros = (step: StepData) => {
+  // Define the mapping based on step ID, vendor, and environment
+  const macroMappings: Record<string, Array<{name: string, type: string, path: string}>> = {
+    // SH Production Environment
+    '5a1': [
+      { name: 'dummy_rand_sh_prod.sas', type: 'RAND Macro', path: './macros/dummy_rand_sh_prod.sas' },
+      { name: 'dummy_kit_sh_prod.sas', type: 'KIT Macro', path: './macros/dummy_kit_sh_prod.sas' }
+    ],
+    // SH UAT Environment
+    '5a2': [
+      { name: 'dummy_rand_sh_uat.sas', type: 'RAND Macro', path: './macros/dummy_rand_sh_uat.sas' },
+      { name: 'dummy_kit_sh_uat.sas', type: 'KIT Macro', path: './macros/dummy_kit_sh_uat.sas' }
+    ],
+    // Calyx Production Environment
+    '5b1': [
+      { name: 'dummy_rand_calyx_prod.sas', type: 'RAND Macro', path: './macros/dummy_rand_calyx_prod.sas' },
+      { name: 'dummy_kit_calyx_prod.sas', type: 'KIT Macro', path: './macros/dummy_kit_calyx_prod.sas' }
+    ],
+    // Calyx UAT Environment
+    '5b2': [
+      { name: 'dummy_rand_calyx_uat.sas', type: 'RAND Macro', path: './macros/dummy_rand_calyx_uat.sas' },
+      { name: 'dummy_kit_calyx_uat.sas', type: 'KIT Macro', path: './macros/dummy_kit_calyx_uat.sas' }
+    ]
+  }
+
+  return macroMappings[step.id] || []
+}
+
+const downloadSASMacro = async (macro: { name: string, type: string, path: string }) => {
+  try {
+    // Fetch the file content from the public/macros directory
+    const response = await fetch(macro.path)
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${macro.name}: ${response.statusText}`)
+    }
+
+    const content = await response.text()
+
+    // Create a blob with the content
+    const blob = new Blob([content], { type: 'text/plain' })
+
+    // Create download link and trigger download
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = macro.name
+    document.body.appendChild(link)
+    link.click()
+
+    // Cleanup
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    console.log(`Downloaded ${macro.name} successfully`)
+  } catch (error) {
+    console.error(`Error downloading ${macro.name}:`, error)
+    alert(`Failed to download ${macro.name}. Please try again.`)
+  }
+}
 </script>
 
 <style scoped>
@@ -1050,44 +1198,6 @@ onBeforeUnmount(() => {
   height: 100%;
   width: 100%;
   min-height: 1000px;
-}
-
-/* Path controls styling */
-.path-controls {
-  background: white;
-  border-radius: 0.5rem;
-  padding: 0.5rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  z-index: 5;
-  margin: 0.5rem;
-  border: 1px solid #e2e8f0;
-}
-
-.path-selector {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.path-btn {
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.path-btn:hover {
-  background: #e5e7eb;
-}
-
-.path-btn.active {
-  background: #3b82f6;
-  color: white;
-  border-color: #2563eb;
 }
 
 /* Custom node styling */
@@ -1292,7 +1402,7 @@ onBeforeUnmount(() => {
   transform: scale(1.05);
 }
 
-/* 已完成节点的复选框样式 */
+/* 已完成节点的��选框样式 */
 .step-node.completed .completion-checkbox .checkbox-label {
   background: #10b981;
   border-color: #059669;
@@ -1784,5 +1894,66 @@ onBeforeUnmount(() => {
   font-size: 0.75rem;
   margin-right: 0.5rem;
   flex-shrink: 0;
+}
+
+/* SAS Macro section styling */
+.sas-macros-section {
+  margin-top: 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1.25rem;
+}
+
+.macro-downloads {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.macro-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  background: #f9fafb;
+  transition: all 0.2s ease;
+}
+
+.macro-item:hover {
+  border-color: #3b82f6;
+  background: #e0f2fe;
+}
+
+.macro-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.macro-name {
+  font-size: 0.875rem;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.macro-type {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.btn-download {
+  padding: 0.375rem 0.75rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-download:hover {
+  background: #2563eb;
 }
 </style>

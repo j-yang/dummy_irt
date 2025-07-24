@@ -116,52 +116,111 @@ export function useStudyManager() {
     }
   }
 
-  // 导出数据
-  const exportData = async () => {
-    try {
-      const data = await dbManager.exportAllData()
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `study_data_${new Date().toISOString().split('T')[0]}.json`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (err) {
-      error.value = '导出数据失败: ' + (err as Error).message
-      throw err
-    }
-  }
-
-  // 导入数据
-  const importData = async (file: File) => {
+  // 导出数据到 JSON 文件
+  const exportToJSON = async () => {
     try {
       loading.value = true
-      const text = await file.text()
-      const data = JSON.parse(text)
-      await dbManager.importData(data)
-      await loadStudies()
+      const data = await dbManager.exportAllData()
+
+      // 创建 JSON 文件并下载
+      const jsonString = JSON.stringify(data, null, 2)
+      const blob = new Blob([jsonString], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `dbl-studies-backup-${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      URL.revokeObjectURL(url)
+
+      return data
     } catch (err) {
-      error.value = '导入数据失败: ' + (err as Error).message
+      error.value = '导出数据失败: ' + (err as Error).message
       throw err
     } finally {
       loading.value = false
     }
   }
 
-  // 清除错误
-  const clearError = () => {
-    error.value = null
+  // 从 JSON 文件导入数据
+  const importFromJSON = async (file: File) => {
+    try {
+      loading.value = true
+
+      const text = await file.text()
+      const data = JSON.parse(text)
+
+      // 验证数据格式
+      if (!data.studies || !Array.isArray(data.studies)) {
+        throw new Error('无效的数据格式: 缺少 studies 数组')
+      }
+
+      await dbManager.importAllData(data)
+      await loadStudies()
+
+      // 清除当前研究选择
+      currentStudy.value = null
+
+      return data
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        error.value = '导入失败: JSON 文件格式错误'
+      } else {
+        error.value = '导入数据失败: ' + (err as Error).message
+      }
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // 清空所有数据
+  const clearAllData = async () => {
+    try {
+      loading.value = true
+      await dbManager.clearAllData()
+      studies.value = []
+      currentStudy.value = null
+    } catch (err) {
+      error.value = '清空数据失败: ' + (err as Error).message
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // 创建文件输入元素用于导入
+  const createFileInput = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    return input
+  }
+
+  // 触发文件选择对话框
+  const triggerImport = () => {
+    return new Promise<File | null>((resolve) => {
+      const input = createFileInput()
+      input.onchange = (event) => {
+        const file = (event.target as HTMLInputElement).files?.[0]
+        resolve(file || null)
+      }
+      input.onclick = () => {
+        // 重置 input 值，允许选择同一个文件
+        input.value = ''
+      }
+      input.click()
+    })
   }
 
   return {
-    // 状态
     studies,
     currentStudy,
     loading,
     error,
-
-    // 方法
     initializeDB,
     loadStudies,
     createNewStudy,
@@ -170,8 +229,9 @@ export function useStudyManager() {
     deleteStudy,
     setCurrentStudy,
     updateFlowData,
-    exportData,
-    importData,
-    clearError
+    exportToJSON,
+    importFromJSON,
+    clearAllData,
+    triggerImport
   }
 }

@@ -37,9 +37,8 @@ const {
   loadStudy,
   setCurrentStudy,
   updateFlowData,
-  exportData,
-  importData,
-  clearError
+  exportToJSON,
+  importFromJSON
 } = useStudyManager()
 
 // 处理项目打开事件
@@ -105,6 +104,11 @@ const loadFromURL = async () => {
   }
 }
 
+// 清除错误
+const clearError = () => {
+  error.value = null
+}
+
 // 切换标签页时更新URL
 const switchTab = (tabName: string) => {
   activeTab.value = tabName
@@ -116,7 +120,7 @@ const switchTab = (tabName: string) => {
   }
 }
 
-// 下载项目快捷方式（原复制项目链接）
+// 下载项目快捷���式（原复制项目链接）
 const copyProjectLink = (project: any) => {
   const basePath = window.origin + window.location.pathname
   const projectUrl = basePath.endsWith('/') ? `${basePath}${project.studyId}` : `${basePath}/${project.studyId}`

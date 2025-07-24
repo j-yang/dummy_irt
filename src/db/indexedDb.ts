@@ -1,4 +1,4 @@
-// IndexedDB 工具类用于保存 study 信息
+// localStorage 工具类用于保存 study 信息
 export interface StudyInfo {
   id: string;
   name: string;
@@ -13,181 +13,150 @@ export interface StudyInfo {
   };
 }
 
-class IndexedDBManager {
-  private dbName = 'DBLStudyDB';
-  private version = 1;
-  private db: IDBDatabase | null = null;
+class LocalStorageManager {
+  private studiesKey = 'dbl_studies';
+  private settingsKey = 'dbl_settings';
+
+  // 序列化日期对象
+  private serializeStudy(study: StudyInfo): any {
+    return {
+      ...study,
+      createdAt: study.createdAt.toISOString(),
+      updatedAt: study.updatedAt.toISOString()
+    };
+  }
+
+  // 反序列化日期对象
+  private deserializeStudy(data: any): StudyInfo {
+    return {
+      ...data,
+      createdAt: new Date(data.createdAt),
+      updatedAt: new Date(data.updatedAt)
+    };
+  }
 
   async initDB(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, this.version);
-
-      request.onerror = () => {
-        reject(new Error('Failed to open database'));
-      };
-
-      request.onsuccess = () => {
-        this.db = request.result;
-        resolve();
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-
-        // 创建 studies 表
-        if (!db.objectStoreNames.contains('studies')) {
-          const studyStore = db.createObjectStore('studies', { keyPath: 'id' });
-          studyStore.createIndex('name', 'name', { unique: false });
-          studyStore.createIndex('createdAt', 'createdAt', { unique: false });
-        }
-
-        // 创建 settings 表
-        if (!db.objectStoreNames.contains('settings')) {
-          db.createObjectStore('settings', { keyPath: 'key' });
-        }
-      };
-    });
+    // localStorage 不需要初始化
+    return Promise.resolve();
   }
 
   async saveStudy(study: StudyInfo): Promise<void> {
-    if (!this.db) await this.initDB();
+    const studies = await this.getAllStudies();
+    const existingIndex = studies.findIndex(s => s.id === study.id);
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['studies'], 'readwrite');
-      const store = transaction.objectStore('studies');
+    study.updatedAt = new Date();
 
-      study.updatedAt = new Date();
-      const request = store.put(study);
+    if (existingIndex >= 0) {
+      studies[existingIndex] = study;
+    } else {
+      studies.push(study);
+    }
 
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to save study'));
-    });
+    const serializedStudies = studies.map(s => this.serializeStudy(s));
+    localStorage.setItem(this.studiesKey, JSON.stringify(serializedStudies));
   }
 
   async getStudy(id: string): Promise<StudyInfo | null> {
-    if (!this.db) await this.initDB();
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['studies'], 'readonly');
-      const store = transaction.objectStore('studies');
-      const request = store.get(id);
-
-      request.onsuccess = () => {
-        resolve(request.result || null);
-      };
-      request.onerror = () => reject(new Error('Failed to get study'));
-    });
+    const studies = await this.getAllStudies();
+    return studies.find(s => s.id === id) || null;
   }
 
   async getAllStudies(): Promise<StudyInfo[]> {
-    if (!this.db) await this.initDB();
+    const data = localStorage.getItem(this.studiesKey);
+    if (!data) return [];
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['studies'], 'readonly');
-      const store = transaction.objectStore('studies');
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        resolve(request.result || []);
-      };
-      request.onerror = () => reject(new Error('Failed to get studies'));
-    });
+    try {
+      const parsed = JSON.parse(data);
+      return parsed.map((item: any) => this.deserializeStudy(item));
+    } catch (error) {
+      console.error('Failed to parse studies from localStorage:', error);
+      return [];
+    }
   }
 
   async deleteStudy(id: string): Promise<void> {
-    if (!this.db) await this.initDB();
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['studies'], 'readwrite');
-      const store = transaction.objectStore('studies');
-      const request = store.delete(id);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to delete study'));
-    });
+    const studies = await this.getAllStudies();
+    const filteredStudies = studies.filter(s => s.id !== id);
+    const serializedStudies = filteredStudies.map(s => this.serializeStudy(s));
+    localStorage.setItem(this.studiesKey, JSON.stringify(serializedStudies));
   }
 
   async saveSetting(key: string, value: any): Promise<void> {
-    if (!this.db) await this.initDB();
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['settings'], 'readwrite');
-      const store = transaction.objectStore('settings');
-      const request = store.put({ key, value });
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('Failed to save setting'));
-    });
+    const settings = await this.getAllSettings();
+    settings[key] = value;
+    localStorage.setItem(this.settingsKey, JSON.stringify(settings));
   }
 
   async getSetting(key: string): Promise<any> {
-    if (!this.db) await this.initDB();
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction(['settings'], 'readonly');
-      const store = transaction.objectStore('settings');
-      const request = store.get(key);
-
-      request.onsuccess = () => {
-        resolve(request.result?.value || null);
-      };
-      request.onerror = () => reject(new Error('Failed to get setting'));
-    });
+    const settings = await this.getAllSettings();
+    return settings[key] || null;
   }
 
-  // 导出数据
-  async exportAllData(): Promise<{studies: StudyInfo[], settings: any[]}> {
+  private async getAllSettings(): Promise<Record<string, any>> {
+    const data = localStorage.getItem(this.settingsKey);
+    if (!data) return {};
+
+    try {
+      return JSON.parse(data);
+    } catch (error) {
+      console.error('Failed to parse settings from localStorage:', error);
+      return {};
+    }
+  }
+
+  // 导出所有数据为 JSON
+  async exportAllData(): Promise<{studies: StudyInfo[], settings: Record<string, any>}> {
     const studies = await this.getAllStudies();
-    const settingsTransaction = this.db!.transaction(['settings'], 'readonly');
-    const settingsStore = settingsTransaction.objectStore('settings');
+    const settings = await this.getAllSettings();
 
-    return new Promise((resolve, reject) => {
-      const request = settingsStore.getAll();
-      request.onsuccess = () => {
-        resolve({
-          studies,
-          settings: request.result || []
-        });
-      };
-      request.onerror = () => reject(new Error('Failed to export data'));
-    });
+    return {
+      studies,
+      settings
+    };
   }
 
-  // 导入数据
-  async importData(data: {studies: StudyInfo[], settings: any[]}): Promise<void> {
-    if (!this.db) await this.initDB();
-
-    const transaction = this.db!.transaction(['studies', 'settings'], 'readwrite');
-    const studyStore = transaction.objectStore('studies');
-    const settingsStore = transaction.objectStore('settings');
-
-    // 导入 studies
-    for (const study of data.studies) {
-      studyStore.put(study);
+  // 从 JSON 导入数据
+  async importAllData(data: {studies: StudyInfo[], settings: Record<string, any>}): Promise<void> {
+    // 导入研究数据
+    if (data.studies && Array.isArray(data.studies)) {
+      const serializedStudies = data.studies.map(study => this.serializeStudy({
+        ...study,
+        createdAt: new Date(study.createdAt),
+        updatedAt: new Date(study.updatedAt)
+      }));
+      localStorage.setItem(this.studiesKey, JSON.stringify(serializedStudies));
     }
 
-    // 导入 settings
-    for (const setting of data.settings) {
-      settingsStore.put(setting);
+    // 导入设置数据
+    if (data.settings && typeof data.settings === 'object') {
+      localStorage.setItem(this.settingsKey, JSON.stringify(data.settings));
     }
+  }
 
-    return new Promise((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(new Error('Failed to import data'));
-    });
+  // 清空所有数据
+  async clearAllData(): Promise<void> {
+    localStorage.removeItem(this.studiesKey);
+    localStorage.removeItem(this.settingsKey);
   }
 }
 
-// 单例模式
-export const dbManager = new IndexedDBManager();
+// 导出单例实例
+export const dbManager = new LocalStorageManager();
 
-// 便捷函数
-export const createStudy = (name: string, description?: string): StudyInfo => ({
-  id: `study_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-  name,
-  description,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  flowData: null,
-  settings: {}
-});
+// 创建新研究的工厂函数
+export function createStudy(name: string, description?: string): StudyInfo {
+  return {
+    id: generateId(),
+    name,
+    description,
+    flowData: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    settings: {}
+  };
+}
+
+// 生成唯一ID
+function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+}

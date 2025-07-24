@@ -2,14 +2,6 @@
   <div class="embeddable-flowchart" :class="{ 'fullscreen': isFullscreen }">
     <div v-if="!hideHeader" class="embed-header">
       <h3>{{ title }}</h3>
-      <div class="embed-controls">
-        <button @click="toggleFullscreen" class="control-btn">
-          {{ isFullscreen ? '退出全屏' : '全屏' }}
-        </button>
-        <button @click="openInNewTab" class="control-btn">
-          新窗口打开
-        </button>
-      </div>
     </div>
 
     <InteractiveFlowChart
@@ -54,22 +46,6 @@ const flowData = ref<{nodes: any[], edges: any[]}>({
 })
 
 const isFullscreen = ref(false)
-
-const toggleFullscreen = () => {
-  isFullscreen.value = !isFullscreen.value
-  if (isFullscreen.value) {
-    document.documentElement.requestFullscreen?.()
-  } else {
-    document.exitFullscreen?.()
-  }
-}
-
-const openInNewTab = () => {
-  const url = props.flowId
-    ? `/flow/${props.flowId}`
-    : window.location.href
-  window.open(url, '_blank')
-}
 
 const handleNodeUpdate = (nodeData: any) => {
   if (!props.readonly) {
@@ -137,26 +113,6 @@ onMounted(() => {
   margin: 0;
   color: #374151;
   font-size: 1rem;
-}
-
-.embed-controls {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.control-btn {
-  padding: 0.25rem 0.5rem;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: opacity 0.2s;
-}
-
-.control-btn:hover {
-  opacity: 0.9;
 }
 
 .powered-by {
